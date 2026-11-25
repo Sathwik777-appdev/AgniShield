@@ -1,0 +1,22 @@
+# Dependencies & build outputs
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment files
+.env
+.env.local
+
+# Local database
+backend/agnishield.db
+
+# Large raw datasets (keep trained backend/model.pkl tracked)
+datasets/
+*.csv
+*.zip
+*.tar.gz
+*.gz
+*.parquet

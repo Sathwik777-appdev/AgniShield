@@ -1,0 +1,232 @@
+/* AgniShield Threat Warning Dialog Overlay */
+#agnishield-threat-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(5, 5, 5, 0.92) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  z-index: 2147483647 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  color: #ffffff !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+}
+
+.agnishield-dialog {
+  background: #0a0f1d !important;
+  border: 1px solid rgba(0, 240, 255, 0.3) !important;
+  box-shadow: 0 0 50px rgba(244, 63, 94, 0.35), 0 20px 40px rgba(0, 0, 0, 0.8) !important;
+  border-radius: 20px !important;
+  max-width: 620px !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  animation: agnishield-appear 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes agnishield-appear {
+  from {
+    transform: scale(0.92) translateY(15px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.agnishield-header {
+  padding: 20px 24px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.agnishield-brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.agnishield-logo {
+  width: 38px !important;
+  height: 38px !important;
+  object-fit: contain !important;
+}
+
+.agnishield-title {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.5px !important;
+  color: #ffffff !important;
+}
+
+.agnishield-title span {
+  color: #00f0ff !important;
+}
+
+.agnishield-subtitle {
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  font-mono: monospace !important;
+}
+
+.agnishield-badge {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1px !important;
+  padding: 5px 12px !important;
+  border-radius: 9999px !important;
+  text-transform: uppercase !important;
+}
+
+.agnishield-body {
+  padding: 24px !important;
+}
+
+.agnishield-alert-box {
+  background: rgba(15, 23, 42, 0.8) !important;
+  padding: 14px 18px !important;
+  border-radius: 12px !important;
+  margin-bottom: 18px !important;
+}
+
+.agnishield-headline {
+  font-size: 14px !important;
+  margin: 0 0 6px 0 !important;
+  color: #f1f5f9 !important;
+}
+
+.agnishield-url-text {
+  font-size: 12px !important;
+  font-family: monospace !important;
+  color: #94a3b8 !important;
+  word-break: break-all !important;
+  margin: 0 0 12px 0 !important;
+}
+
+.agnishield-stats {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 10px !important;
+  padding-top: 10px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.agnishield-stat-item {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.stat-label {
+  font-size: 10px !important;
+  text-transform: uppercase !important;
+  color: #64748b !important;
+  font-weight: 600 !important;
+}
+
+.stat-val {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #f8fafc !important;
+  margin-top: 2px !important;
+}
+
+.agnishield-reasons {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 12px !important;
+  padding: 14px 16px !important;
+  margin-bottom: 16px !important;
+}
+
+.reasons-title {
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  font-weight: 700 !important;
+  color: #00f0ff !important;
+  margin-bottom: 8px !important;
+  letter-spacing: 0.5px !important;
+}
+
+.agnishield-reasons ul {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.agnishield-reasons li {
+  font-size: 12px !important;
+  color: #cbd5e1 !important;
+  margin-bottom: 6px !important;
+  line-height: 1.4 !important;
+}
+
+.agnishield-mitre {
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.agnishield-mitre code {
+  background: rgba(244, 63, 94, 0.15) !important;
+  color: #fda4af !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(244, 63, 94, 0.3) !important;
+  font-size: 11px !important;
+}
+
+.agnishield-footer {
+  padding: 16px 24px 20px !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+
+.agnishield-btn-primary {
+  width: 100% !important;
+  padding: 12px 18px !important;
+  background: #00f0ff !important;
+  color: #050505 !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  border-radius: 12px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.4) !important;
+}
+
+.agnishield-btn-primary:hover {
+  background: #38bdf8 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 0 25px rgba(0, 240, 255, 0.6) !important;
+}
+
+.agnishield-btn-secondary {
+  width: 100% !important;
+  padding: 10px 18px !important;
+  background: transparent !important;
+  color: #94a3b8 !important;
+  font-size: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 12px !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+.agnishield-btn-secondary:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgniShield Sentinel</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      width: 320px;
+      background: #050505;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 16px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 6px #00f0ff);
+    }
+    .brand-text {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .brand-text span {
+      color: #00f0ff;
+    }
+    .status-badge {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      letter-spacing: 0.5px;
+    }
+    .badge-safe {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .badge-warn {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .badge-danger {
+      background: rgba(244, 63, 94, 0.15);
+      color: #f43f5e;
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .url-title {
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .current-url {
+      font-size: 12px;
+      color: #e2e8f0;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 10px;
+    }
+    .score-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 8px;
+    }
+    .score-label {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .score-value {
+      font-size: 16px;
+      font-weight: 800;
+      font-family: monospace;
+    }
+    .features-list {
+      font-size: 11px;
+      color: #cbd5e1;
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+    .action-btn {
+      width: 100%;
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      color: #00f0ff;
+      padding: 9px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .action-btn:hover {
+      background: rgba(0, 240, 255, 0.25);
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+    }
+    .footer {
+      font-size: 9px;
+      color: #475569;
+      text-align: center;
+      margin-top: 10px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">
+      <img src="../icons/icon48.png" class="logo" alt="Logo" />
+      <span class="brand-text">AGNI<span>SHIELD</span></span>
+    </div>
+    <span id="threat-badge" class="status-badge badge-safe">ACTIVE</span>
+  </div>
+
+  <div class="card">
+    <div class="url-title">Active Tab</div>
+    <div id="tab-url" class="current-url">Detecting active host...</div>
+
+    <div class="score-row">
+      <span class="score-label">Neural Safety Score</span>
+      <span id="safety-score" class="score-value" style="color: #10b981">-- / 100</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="url-title">Telemetry Signals</div>
+    <div id="telemetry-info" class="features-list">
+      • 200-Tree Random Forest Sentinel: Monitoring<br>
+      • Real-time DNS entropy & C2 beacon check
+    </div>
+  </div>
+
+  <button id="rescan-btn" class="action-btn">Re-Scan Active Tab</button>
+
+  <div class="footer">
+    AgniShield Engine v1.0 • Connected to Local Host:8000
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

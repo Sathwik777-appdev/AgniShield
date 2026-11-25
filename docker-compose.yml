@@ -1,0 +1,40 @@
+services:
+  agnishield-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agnishield_app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PG_HOST=postgres
+      - PG_PORT=5432
+      - PG_USER=agnishield_user
+      - PG_PASSWORD=agnishield_secure_pwd
+      - PG_DB=agnishield_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: agnishield_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: agnishield_user
+      POSTGRES_PASSWORD: agnishield_secure_pwd
+      POSTGRES_DB: agnishield_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agnishield_user -d agnishield_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
