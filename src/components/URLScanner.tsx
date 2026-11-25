@@ -139,16 +139,16 @@ export function URLScanner({
             <button
               type="submit"
               disabled={isScanning}
-              className="px-7 py-3.5 rounded-2xl font-bold text-xs sm:text-sm tracking-wider uppercase text-black bg-white hover:bg-[#00f0ff] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-lg shadow-white/10 hover:shadow-[0_0_25px_rgba(0,240,255,0.45)]"
+              className="px-6 py-3 rounded-xl font-semibold text-sm text-neutral-950 bg-white hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm"
             >
               {isScanning ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin text-black" />
+                  <Loader2 className="w-4 h-4 animate-spin text-neutral-950" />
                   <span>Scanning...</span>
                 </>
               ) : (
                 <>
-                  <span>START ANALYSIS</span>
+                  <span>Analyze URL</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

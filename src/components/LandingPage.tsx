@@ -105,10 +105,10 @@ export function LandingPage({
             </div>
             <button
               type="submit"
-              className="bg-white text-black font-bold px-8 py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#00f0ff] transition-all active:scale-95 group/btn cursor-pointer shrink-0 btn-glow-cyan"
+              className="bg-white text-neutral-950 font-semibold text-sm sm:text-base px-7 py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors active:scale-[0.98] group/btn cursor-pointer shrink-0 shadow-sm"
             >
-              <span>START ANALYSIS</span>
-              <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+              <span>Analyze URL</span>
+              <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform" />
             </button>
           </form>
 
