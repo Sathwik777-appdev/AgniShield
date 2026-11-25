@@ -412,9 +412,9 @@ export function URLScanner({
               <button
                 type="button"
                 onClick={() => generateAuditPdfReport(selectedResult)}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold bg-cyan-500/20 hover:bg-cyan-500/30 text-[#00f0ff] border border-cyan-500/40 flex items-center gap-2 cursor-pointer transition-all shadow-[0_0_15px_rgba(0,240,255,0.25)] hover:shadow-[0_0_22px_rgba(0,240,255,0.45)]"
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-white hover:bg-neutral-200 text-neutral-950 flex items-center gap-2 cursor-pointer transition-colors shadow-sm"
               >
-                <FileText className="w-4 h-4 text-[#00f0ff]" />
+                <FileText className="w-4 h-4 text-neutral-950" />
                 Download PDF Audit
               </button>
               <button

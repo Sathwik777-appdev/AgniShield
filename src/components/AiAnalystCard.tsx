@@ -85,33 +85,27 @@ export const AiAnalystCard: React.FC<AiAnalystCardProps> = ({ scan }) => {
   }, [scan]);
 
   return (
-    <div className="relative rounded-3xl p-6 sm:p-7 bg-[#070b16]/90 border border-cyan-500/30 shadow-[0_0_35px_rgba(0,240,255,0.12)] backdrop-blur-xl">
+    <div className="glass rounded-3xl p-6 sm:p-7 border border-white/10 shadow-xl">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/[0.08]">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00f0ff] to-[#9d00ff] flex items-center justify-center p-0.5 shadow-[0_0_15px_rgba(0,240,255,0.4)]">
-            <Bot className="w-5 h-5 text-black" />
+          <div className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center">
+            <Bot className="w-5 h-5 text-slate-200" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-base sm:text-lg font-display font-bold text-white tracking-tight">
-                AI Threat Intelligence &amp; Root-Cause Analysis
-              </h3>
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00f0ff] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00f0ff]"></span>
-              </span>
-            </div>
-            <p className="text-xs font-mono text-cyan-300/80">
+            <h3 className="text-base sm:text-lg font-display font-bold text-white tracking-tight">
+              AI Threat Intelligence &amp; Root-Cause Analysis
+            </h3>
+            <p className="text-xs font-mono text-slate-400">
               {data?.engine || 'Synthesizing neural features & telemetry...'}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 text-xs font-mono px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[#00f0ff]">
-            <Sparkles className="w-3.5 h-3.5" />
-            Autonomous Reasoning
+          <span className="inline-flex items-center gap-1.5 text-xs font-mono px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 text-slate-300">
+            <Sparkles className="w-3.5 h-3.5 text-slate-400" />
+            Automated Assessment
           </span>
           <button
             onClick={() => setExpanded(!expanded)}
@@ -132,9 +126,9 @@ export const AiAnalystCard: React.FC<AiAnalystCardProps> = ({ scan }) => {
       {!loading && data && expanded && (
         <div className="space-y-6 pt-5">
           {/* Executive Summary */}
-          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-sm text-gray-200 leading-relaxed font-sans">
-            <span className="text-[#00f0ff] font-bold font-mono text-xs uppercase tracking-wider block mb-1">
-              • AI Diagnostic Assessment:
+          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.08] text-sm text-gray-200 leading-relaxed font-sans">
+            <span className="text-slate-400 font-semibold font-mono text-xs uppercase tracking-wider block mb-1">
+              Diagnostic Summary
             </span>
             {data.executiveSummary}
           </div>
@@ -178,27 +172,33 @@ export const AiAnalystCard: React.FC<AiAnalystCardProps> = ({ scan }) => {
               </div>
 
               <div className="space-y-2.5">
-                {data.remediations?.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3.5 rounded-xl bg-black/40 border border-white/[0.06] hover:border-emerald-500/20 transition-all"
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#00ff88]" />
-                        {item.action}
-                      </span>
-                      <span
-                        className={`text-[10px] font-mono font-extrabold px-2 py-0.5 rounded border uppercase ${
-                          PRIORITY_BADGE[item.priority] || PRIORITY_BADGE.P2
-                        }`}
-                      >
-                        {item.priority}
-                      </span>
+                {data.remediations && data.remediations.length > 0 ? (
+                  data.remediations.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/15 transition-all"
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          {item.action}
+                        </span>
+                        <span
+                          className={`text-[10px] font-mono font-extrabold px-2 py-0.5 rounded border uppercase ${
+                            PRIORITY_BADGE[item.priority] || PRIORITY_BADGE.P2
+                          }`}
+                        >
+                          {item.priority}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-300 leading-relaxed font-sans">{item.guidance}</p>
                     </div>
-                    <p className="text-[11px] text-gray-300 leading-relaxed font-sans">{item.guidance}</p>
+                  ))
+                ) : (
+                  <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs text-slate-400">
+                    No remediation required — all checked telemetry parameters are within safe baseline thresholds.
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
