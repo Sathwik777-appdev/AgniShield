@@ -69,11 +69,12 @@ export function LandingPage({
       {/* Hero Section */}
       <section className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-12 text-center max-w-7xl mx-auto w-full">
         {/* Display Headline */}
-        <h1 className="text-5xl md:text-7xl font-display font-bold tracking-tighter mb-5 leading-[1.03]">
+        <h1
+          className="text-5xl md:text-7xl font-bold text-white tracking-tight mb-5 leading-[1.08]"
+          style={{ fontFamily: "'Times New Roman', Times, serif" }}
+        >
           WEBSITE <br />
-          <span className="bg-gradient-to-r from-[#00f0ff] via-[#9d00ff] to-[#00ff88] bg-clip-text text-transparent glow-cyan">
-            SAFETY CHECKER
-          </span>
+          <span>SAFETY CHECKER</span>
         </h1>
 
         <p className="max-w-2xl text-gray-400 text-base sm:text-lg mb-8 font-medium leading-relaxed">
