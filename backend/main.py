@@ -1,7 +1,9 @@
 import csv
 import io
+import lzma
 import os
 import pickle
+import shutil
 import sys
 import threading
 from datetime import datetime, timezone
@@ -30,6 +32,10 @@ from rate_limit import RateLimitMiddleware
 from telemetry import extract_features, shannon_entropy
 
 MODEL_PATH = Path(__file__).parent / "model.pkl"
+MODEL_XZ_PATH = Path(__file__).parent / "model.pkl.xz"
+if not MODEL_PATH.exists() and MODEL_XZ_PATH.exists():
+    with lzma.open(MODEL_XZ_PATH, "rb") as src, open(MODEL_PATH, "wb") as dst:
+        shutil.copyfileobj(src, dst)
 if not MODEL_PATH.exists():
     # Fallback: train a small synthetic model if no model.pkl exists
     from train_model import train_and_save

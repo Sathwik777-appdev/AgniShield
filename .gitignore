@@ -10,8 +10,9 @@ venv/
 .env
 .env.local
 
-# Local database
+# Local database & uncompressed model (model.pkl.xz is tracked)
 backend/agnishield.db
+backend/model.pkl
 
 # Large raw datasets (keep trained backend/model.pkl tracked)
 datasets/
