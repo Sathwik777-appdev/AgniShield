@@ -18,6 +18,7 @@ backend/model.pkl
 datasets/
 *.csv
 *.zip
+!agnishield-extension.zip
 *.tar.gz
 *.gz
 *.parquet

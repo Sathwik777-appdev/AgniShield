@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="public/logo.png" alt="AgniShield Logo" width="120" />
+
 # 🛡️ AgniShield | Real-Time Threat Sentinel
 ### Autonomous Neural Threat Defense & C2 Beaconing Detection Engine
 
@@ -36,8 +38,8 @@ Modern cyber adversaries leverage dynamically generated domains and legitimate c
 
 ```mermaid
 flowchart TD
-    User([User / Browser Extension]) --> WebApp[AgniShield Web App / Manifest V3 Sentinel]
-    WebApp --> FastAPIGateway[FastAPI Security Gateway :8000]
+    User(["User / Browser Extension"]) --> WebApp["AgniShield Web App / Manifest V3 Sentinel"]
+    WebApp --> FastAPIGateway["FastAPI Security Gateway (:8000)"]
     
     subgraph Pipeline ["Three-Stage Neural Inspection Pipeline"]
         FastAPIGateway --> Gate1["Stage 1: Existence Validation<br/>(Live DNS A/AAAA & Socket IP Check)"]
@@ -48,10 +50,10 @@ flowchart TD
     end
 
     MLEngine --> ScoreEngine["Safety Scoring Engine (0-100)<br/>& MITRE ATT&CK Classifier"]
-    ScoreEngine --> DBPersist[(PostgreSQL Database<br/>with SQLite Fallback)]
+    ScoreEngine --> DBPersist[("PostgreSQL Database<br/>with SQLite Fallback")]
     ScoreEngine --> AIAnalyst["AI Threat Intelligence Engine<br/>(Local SOC Heuristic Expert System)"]
     
-    AIAnalyst --> ClientResponse[Unified JSON Security Audit Response]
+    AIAnalyst --> ClientResponse["Unified JSON Security Audit Response"]
     ClientResponse --> UI["• Interactive C2 Threat Topology Graph<br/>• 1-Click Forensic PDF Audit Report<br/>• CSV IOC Blocklist Export<br/>• MV3 Sentinel Badge & Modal Interceptor"]
 ```
 
@@ -78,7 +80,9 @@ flowchart TD
 ### The 10-Dimensional Feature Vector
 AgniShield evaluates every URL across 10 deterministic mathematical and structural indicators:
 
-$$\vec{X} = \begin{bmatrix} H(D) & C_{\text{sub}} & R_{\text{digit}} & B_{\text{https}} & B_{\text{kw}} & B_{\text{ip}} & S_{\text{beacon}} & R_{\text{byte}} & Q_{\text{dns}} & R_{\text{nx}} \end{bmatrix}^T$$
+$$
+\vec{X} = \begin{bmatrix} H(D) & C_{\text{sub}} & R_{\text{digit}} & B_{\text{https}} & B_{\text{kw}} & B_{\text{ip}} & S_{\text{beacon}} & R_{\text{byte}} & Q_{\text{dns}} & R_{\text{nx}} \end{bmatrix}^T
+$$
 
 | Feature Name | Type | Description & Forensic Significance |
 |---|---|---|
@@ -96,7 +100,9 @@ $$\vec{X} = \begin{bmatrix} H(D) & C_{\text{sub}} & R_{\text{digit}} & B_{\text{
 ### Mathematical Shannon Entropy Formulation
 Algorithmic domain randomness is calculated using the classical information entropy equation:
 
-$$H(D) = -\sum_{i=1}^{n} P(x_i) \log_2 P(x_i)$$
+$$
+H(D) = -\sum_{i=1}^{n} P(x_i) \log_2 P(x_i)
+$$
 
 * **Organic Human Domains** (`google.com`, `wikipedia.org`): $1.85 \le H(D) \le 2.65\text{ bits}$
 * **Algorithmic DGA Malware** (`x9k2m7q8z4v1p3w6.xyz`): $H(D) \ge 3.85\text{ bits}$
@@ -147,9 +153,9 @@ AgniShield maps all real-time threats directly to the **MITRE ATT&CK Enterprise 
 
 | MITRE ID | Tactic | Technique Name | Detection Criteria |
 |---|---|---|---|
-| **T1568.002** | Command & Control | Dynamic Resolution: Domain Generation Algorithms (DGA) | $H(D) > 3.7\text{ bits}$, elevated NXDOMAIN ratio $\ge 35\%$, high tree confidence |
+| **T1568.002** | Command & Control | Dynamic Resolution: Domain Generation Algorithms (DGA) | $H(D) \gt 3.7\text{ bits}$, elevated NXDOMAIN ratio $\ge 35\%$, high tree confidence |
 | **T1071.001** | Command & Control | Application Layer Protocol: Web Protocols | Sustained periodic beaconing score $\ge 65\%$, asymmetric outbound byte ratio $\ge 3.5\times$ |
-| **T1071.004** | Command & Control | Application Layer Protocol: DNS | Elevated DNS query rates ($> 40\text{ req/min}$), nested subdomain depth $\ge 3$ |
+| **T1071.004** | Command & Control | Application Layer Protocol: DNS | Elevated DNS query rates ($\gt 40\text{ req/min}$), nested subdomain depth $\ge 3$ |
 | **T1566.002** | Initial Access | Phishing: Spearphishing Link | Phishing keyword matches in path, URL shortener redirection lures, unencrypted transport |
 | **T1588.003** | Resource Development | Obtain Capabilities: Code Signing Certificates | Invalid, expired, self-signed, or untrusted TLS certificates on HTTPS targets |
 
@@ -223,14 +229,10 @@ npm run build
 ## 📡 API Reference
 
 ### 1. Analyze Website URL
-```http
-POST /api/v1/scan
-Content-Type: application/json
-
-{
-  "url": "https://gemini.google.com",
-  "preset": "auto"
-}
+```bash
+curl -X POST "https://agnishield.onrender.com/api/v1/scan" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://gemini.google.com", "preset": "auto"}'
 ```
 **Response (200 OK):**
 ```json
@@ -260,13 +262,10 @@ Content-Type: application/json
 ```
 
 ### 2. Non-Existent Domain Handling
-```http
-POST /api/v1/scan
-Content-Type: application/json
-
-{
-  "url": "https://fake-never-registered-domain-999.xyz"
-}
+```bash
+curl -X POST "https://agnishield.onrender.com/api/v1/scan" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://fake-never-registered-domain-999.xyz"}'
 ```
 **Response (400 Bad Request):**
 ```json
@@ -276,8 +275,8 @@ Content-Type: application/json
 ```
 
 ### 3. Engine Health Check
-```http
-GET /api/v1/health
+```bash
+curl "https://agnishield.onrender.com/api/v1/health"
 ```
 **Response (200 OK):**
 ```json
