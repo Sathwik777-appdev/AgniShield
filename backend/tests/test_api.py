@@ -92,8 +92,8 @@ def test_benign_subdomains_and_threats_accuracy():
         "https://x9k2m7q8z4v1p3w6.xyz",
     ):
         with patch("telemetry.resolve_dns_and_ssl", return_value={
-            "ipAddress": "Unresolved",
-            "dnsResolved": False,
+            "ipAddress": "185.220.101.5",
+            "dnsResolved": True,
             "sslValid": False,
             "sslIssuer": "None",
         }):
@@ -102,6 +102,25 @@ def test_benign_subdomains_and_threats_accuracy():
         data = res.json()
         assert data["riskCategory"] == "Dangerous", f"Missed threat on {danger_url}: {data}"
         assert data["safetyScore"] <= 38
+
+
+def test_nonexistent_website_rejected_before_scoring():
+    """Verify that an unresolvable/non-existent website is intercepted BEFORE scoring."""
+    unresolved_net = {
+        "ipAddress": "Unresolved",
+        "dnsResolved": False,
+        "sslValid": False,
+        "sslIssuer": "None",
+    }
+    with patch("telemetry.resolve_dns_and_ssl", return_value=unresolved_net):
+        res = client.post("/api/v1/scan", json={"url": "https://this-domain-does-not-exist-999.xyz", "preset": "auto"})
+    assert res.status_code == 400
+    body = res.json()
+    assert "detail" in body
+    assert "does not exist" in body["detail"].lower()
+    # Ensure no safety score or ML classification was generated
+    assert "safetyScore" not in body
+    assert "riskCategory" not in body
 
 
 def test_invalid_tls_penalizes_https_host():

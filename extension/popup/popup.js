@@ -82,7 +82,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (chrome.runtime.lastError || !res || !res.scan) {
         displayScan(
           null,
-          "Backend unreachable or waking up (Render cold-start takes ~20s). Try again shortly."
+          res?.error || "Website does not exist or DNS could not be resolved."
         );
         return;
       }

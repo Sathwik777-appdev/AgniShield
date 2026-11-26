@@ -82,7 +82,7 @@ async function queryAgniShield(url, forceRefresh = false) {
 
   if (!forceRefresh) {
     const cached = await getCachedScan(cacheKey);
-    if (cached) return cached;
+    if (cached) return { error: null, scan: cached };
   }
 
   if (pendingScans.has(cacheKey)) {
@@ -101,15 +101,20 @@ async function queryAgniShield(url, forceRefresh = false) {
       });
 
       if (!res.ok) {
-        throw new Error(`API returned status ${res.status}`);
+        let errDetail = `API returned status ${res.status}`;
+        try {
+          const body = await res.json();
+          if (body?.detail) errDetail = body.detail;
+        } catch {}
+        return { error: errDetail, scan: null };
       }
 
       const result = await res.json();
       await setCachedScan(cacheKey, result);
-      return result;
+      return { error: null, scan: result };
     } catch (err) {
       console.warn("[AgniShield Sentinel] Scan request failed:", err);
-      return null;
+      return { error: err.message, scan: null };
     } finally {
       clearTimeout(timer);
       pendingScans.delete(cacheKey);
@@ -145,8 +150,12 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     tab.url &&
     isAnalyzable(tab.url)
   ) {
-    const scanResult = await queryAgniShield(tab.url);
-    if (!scanResult) return;
+    const response = await queryAgniShield(tab.url);
+    const scanResult = response?.scan;
+    if (!scanResult) {
+      updateBadge(tabId, null);
+      return;
+    }
 
     updateBadge(tabId, scanResult.riskCategory);
 
@@ -171,7 +180,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     }
     const cacheKey = getCacheKey(request.url);
     getCachedScan(cacheKey).then((result) => {
-      sendResponse({ scan: result });
+      sendResponse({ scan: result, error: null });
     });
     return true;
   }
@@ -182,7 +191,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       return false;
     }
     queryAgniShield(request.url, true).then((res) => {
-      sendResponse({ scan: res });
+      sendResponse({ scan: res?.scan || null, error: res?.error || null });
     });
     return true;
   }

@@ -209,6 +209,13 @@ def scan(req: ScanRequest):
     hostname = (parsed.hostname or "").lower()
     features, live_net = extract_features(normalized, req.preset)
 
+    # Pre-scoring validation: Verify target website actually exists on the internet
+    if not live_net["dnsResolved"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Target website does not exist: '{hostname}' could not be resolved via live DNS. AgniShield verifies that a website is registered and active before evaluating threat telemetry and safety scores.",
+        )
+
     vector = np.array([[features[name] for name in FEATURE_NAMES]], dtype=float)
     probs = RF_MODEL.predict_proba(vector)[0]
     pred_idx = int(np.argmax(probs))
@@ -229,11 +236,7 @@ def scan(req: ScanRequest):
         ),
     )
 
-    if not live_net["dnsResolved"]:
-        if predicted_class == "Safe":
-            predicted_class = "Suspicious"
-        safety_score = min(safety_score, 42)
-    elif features["httpsEnabled"] == 1 and not live_net["sslValid"]:
+    if features["httpsEnabled"] == 1 and not live_net["sslValid"]:
         if predicted_class == "Safe":
             predicted_class = "Suspicious"
         safety_score = min(safety_score, 64)
