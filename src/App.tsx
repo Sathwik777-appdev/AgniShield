@@ -47,7 +47,7 @@ export function App() {
     try {
       const [result] = await Promise.all([
         scanWebsite(url, preset),
-        new Promise((resolve) => setTimeout(resolve, 1400)),
+        new Promise((resolve) => setTimeout(resolve, 7000)),
       ]);
       setScanHistory((prev) => [result, ...prev]);
       setSelectedResult(result);
