@@ -16,7 +16,7 @@ export function AnalysisCard({
   className = '',
 }: AnalysisCardProps) {
   return (
-    <div className={`glass-card rounded-2xl p-5 sm:p-6 ${className}`}>
+    <div className={`glass-card rounded-md p-5 sm:p-6 ${className}`}>
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <h3 className="text-base font-semibold text-slate-100 flex items-center gap-2">

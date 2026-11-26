@@ -113,11 +113,9 @@ export function URLScanner({
 
   return (
     <div className="space-y-6">
-      {/* ── Top Bar: Compact Translucent Input Bar ── */}
-      <div className="relative group">
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/20 via-purple-500/15 to-emerald-500/20 rounded-3xl blur-xl opacity-35 group-hover:opacity-90 transition duration-700 pointer-events-none" />
-        
-        <div className="relative rounded-3xl p-5 sm:p-6 bg-[#050505]/35 backdrop-blur-md border border-white/[0.08] shadow-xl">
+      {/* ── Top Bar: High-Precision Enterprise Input Bar ── */}
+      <div className="relative">
+        <div className="relative rounded-md p-5 sm:p-6 bg-[#090d16] border border-white/[0.09] shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3">
               <span className="w-2 h-2 rounded-full bg-[#00f0ff] animate-pulse" />
@@ -126,14 +124,14 @@ export function URLScanner({
               </h1>
             </div>
 
-            <span className="self-start sm:self-auto inline-flex items-center gap-2 text-xs font-mono font-medium px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300">
+            <span className="self-start sm:self-auto inline-flex items-center gap-2 text-xs font-mono font-medium px-2.5 py-1 rounded-sm bg-cyan-500/10 border border-cyan-500/25 text-cyan-300">
               <Shield className="w-3.5 h-3.5 text-[#00f0ff]" />
               200-Tree RF Engine Active
             </span>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1 flex items-center px-4 py-3 rounded-2xl bg-black/30 border border-white/12 focus-within:border-[#00f0ff] focus-within:shadow-[0_0_20px_rgba(0,240,255,0.2)] transition-all">
+            <div className="relative flex-1 flex items-center px-4 py-3 rounded bg-[#05070d] border border-white/15 focus-within:border-[#00f0ff] focus-within:ring-1 focus-within:ring-[#00f0ff]/30 transition-all">
               <Search className="w-4 h-4 text-gray-400 mr-3 shrink-0" />
               <input
                 type="text"
@@ -143,14 +141,14 @@ export function URLScanner({
                   if (error) setError(null);
                 }}
                 placeholder="https://enter-website-url.com/scan"
-                className="w-full bg-transparent text-white placeholder-gray-500 border-none focus:outline-none text-sm sm:text-base"
+                className="w-full bg-transparent text-white placeholder-gray-500 border-none focus:outline-none text-sm sm:text-base font-mono"
                 disabled={isScanning}
               />
             </div>
             <button
               type="submit"
               disabled={isScanning}
-              className="px-6 py-3 rounded-xl font-semibold text-sm text-neutral-950 bg-white hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm"
+              className="px-6 py-3 rounded font-semibold text-sm text-neutral-950 bg-white hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm"
             >
               {isScanning ? (
                 <>
@@ -184,7 +182,7 @@ export function URLScanner({
                     setInputUrl(example);
                     setError(null);
                   }}
-                  className="px-2.5 py-1 rounded-lg text-gray-300 hover:text-[#00f0ff] hover:bg-white/5 transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded-sm text-gray-300 hover:text-[#00f0ff] hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/10"
                 >
                   {example.replace('https://', '').replace('http://', '')}
                 </button>
@@ -199,7 +197,7 @@ export function URLScanner({
                 id="telemetry-preset"
                 value={preset}
                 onChange={(e) => setPreset(e.target.value as TelemetryPreset)}
-                className="px-2.5 py-1 rounded-lg bg-[#050505]/80 border border-white/15 text-gray-200 focus:outline-none focus:border-[#00f0ff] text-xs"
+                className="px-2.5 py-1 rounded-sm bg-[#05070d] border border-white/15 text-gray-200 focus:outline-none focus:border-[#00f0ff] text-xs font-mono"
               >
                 <option value="auto">Auto (URL Heuristics)</option>
                 <option value="normal">Normal HTTPS Traffic</option>
@@ -377,16 +375,16 @@ export function URLScanner({
       {!isScanning && selectedResult && (
         <div className="space-y-6">
           {/* Summary Banner */}
-          <div className="glass rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 border-white/10 shadow-2xl">
+          <div className="bg-[#090d16] border border-white/[0.09] rounded-md p-6 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
             <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
               <SecurityScore
                 score={selectedResult.safetyScore}
                 category={selectedResult.riskCategory}
               />
               <div className="space-y-2.5">
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                   <RiskBadge category={selectedResult.riskCategory} />
-                  <span className="inline-flex items-center gap-1 text-xs font-mono font-medium px-3 py-1 rounded-full border bg-purple-500/15 text-purple-300 border-purple-500/30">
+                  <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold px-2.5 py-0.5 rounded-sm border bg-purple-500/15 text-purple-300 border-purple-500/30 uppercase tracking-wider">
                     C2: {selectedResult.c2Verdict}
                   </span>
                   {(() => {
@@ -394,7 +392,7 @@ export function URLScanner({
                     const tlsStatus = httpsCheck?.status ?? (selectedResult.httpsEnabled ? 'pass' : 'fail');
                     return (
                       <span
-                        className={`inline-flex items-center gap-1 text-xs font-mono font-medium px-3 py-1 rounded-full border ${
+                        className={`inline-flex items-center gap-1 text-xs font-mono font-semibold px-2.5 py-0.5 rounded-sm border uppercase tracking-wider ${
                           tlsStatus === 'pass'
                             ? 'bg-emerald-500/10 text-[#00ff88] border-emerald-500/30'
                             : tlsStatus === 'warn'
@@ -403,9 +401,9 @@ export function URLScanner({
                         }`}
                       >
                         {selectedResult.httpsEnabled ? (
-                          <Lock className="w-3.5 h-3.5" />
+                          <Lock className="w-3 h-3" />
                         ) : (
-                          <LockOpen className="w-3.5 h-3.5" />
+                          <LockOpen className="w-3 h-3" />
                         )}
                         {tlsStatus === 'pass'
                           ? 'TLS Verified'
@@ -435,13 +433,13 @@ export function URLScanner({
             </div>
 
             {/* 1-Click Export Actions */}
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <button
                 type="button"
                 onClick={() => generateAuditPdfReport(selectedResult)}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-white hover:bg-neutral-200 text-neutral-950 flex items-center gap-2 cursor-pointer transition-colors shadow-sm"
+                className="px-3.5 py-2 rounded text-xs font-semibold bg-white hover:bg-neutral-200 text-neutral-950 flex items-center gap-2 cursor-pointer transition-colors shadow-sm"
               >
-                <FileText className="w-4 h-4 text-neutral-950" />
+                <FileText className="w-3.5 h-3.5 text-neutral-950" />
                 Download PDF Audit
               </button>
               <button
@@ -456,9 +454,9 @@ export function URLScanner({
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-200 border border-white/15 flex items-center gap-2 cursor-pointer transition-all"
+                className="px-3.5 py-2 rounded text-xs font-semibold bg-[#05070d] hover:bg-white/10 text-gray-200 border border-white/15 flex items-center gap-2 cursor-pointer transition-all"
               >
-                <Download className="w-4 h-4 text-gray-300" />
+                <Download className="w-3.5 h-3.5 text-gray-300" />
                 Export IOC (CSV)
               </button>
               <button
@@ -468,9 +466,9 @@ export function URLScanner({
                     `0.0.0.0 ${selectedResult.domainInfo.domain} # AgniShield ${selectedResult.riskCategory}`
                   );
                 }}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-gray-200 border border-white/15 flex items-center gap-2 cursor-pointer transition-all"
+                className="px-3.5 py-2 rounded text-xs font-semibold bg-[#05070d] hover:bg-white/10 text-gray-200 border border-white/15 flex items-center gap-2 cursor-pointer transition-all"
               >
-                <Copy className="w-4 h-4" />
+                <Copy className="w-3.5 h-3.5" />
                 Copy Block Rule
               </button>
             </div>
@@ -487,13 +485,13 @@ export function URLScanner({
               subtitle="Live heuristic & protocol checks"
               icon={<Shield className="w-4 h-4 text-[#00f0ff]" />}
             >
-              <ul className="space-y-3">
+              <ul className="space-y-2.5">
                 {selectedResult.checklist.map((item) => {
                   const Icon = CHECK_ICON[item.status];
                   return (
                     <li
                       key={item.id}
-                      className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/10"
+                      className="flex items-start gap-3 p-3 rounded-sm bg-[#05070d] border border-white/[0.08] hover:border-white/20 transition-colors"
                     >
                       <Icon
                         className={`w-4 h-4 mt-0.5 shrink-0 ${
@@ -521,28 +519,28 @@ export function URLScanner({
                 subtitle="DNS resolution & host metadata"
                 icon={<Globe className="w-4 h-4 text-purple-400" />}
               >
-                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                  <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-sm">
+                  <div className="p-3 rounded-sm bg-[#05070d] border border-white/[0.08]">
                     <dt className="text-xs font-mono text-gray-400">Domain</dt>
-                    <dd className="font-medium text-white mt-0.5 break-all">
+                    <dd className="font-medium text-white mt-0.5 break-all font-mono text-xs">
                       {selectedResult.domainInfo.domain}
                     </dd>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
+                  <div className="p-3 rounded-sm bg-[#05070d] border border-white/[0.08]">
                     <dt className="text-xs font-mono text-gray-400">IP Address</dt>
-                    <dd className="font-medium text-white mt-0.5 font-mono">
+                    <dd className="font-medium text-white mt-0.5 font-mono text-xs">
                       {selectedResult.domainInfo.ipAddress}
                     </dd>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
+                  <div className="p-3 rounded-sm bg-[#05070d] border border-white/[0.08]">
                     <dt className="text-xs font-mono text-gray-400">Registrar</dt>
-                    <dd className="font-medium text-white mt-0.5">
+                    <dd className="font-medium text-white mt-0.5 text-xs">
                       {selectedResult.domainInfo.registrar}
                     </dd>
                   </div>
-                  <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
+                  <div className="p-3 rounded-sm bg-[#05070d] border border-white/[0.08]">
                     <dt className="text-xs font-mono text-gray-400">Server Location</dt>
-                    <dd className="font-medium text-white mt-0.5">
+                    <dd className="font-medium text-white mt-0.5 text-xs">
                       {selectedResult.domainInfo.serverLocation}
                     </dd>
                   </div>
@@ -553,39 +551,39 @@ export function URLScanner({
                 title="Random Forest C2 & Telemetry"
                 subtitle={`${selectedResult.randomForest.totalTrees}-Tree Ensemble • ${selectedResult.randomForest.confidence}% confidence • Live DNS/TLS + Lexical Flow Estimates`}
               >
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs mb-4 font-mono">
-                  <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/10">
-                    <span className="text-gray-400">Beaconing</span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs mb-4 font-mono">
+                  <div className="p-2.5 rounded-sm bg-[#05070d] border border-white/[0.08]">
+                    <span className="text-gray-400 text-[11px]">Beaconing</span>
                     <p className="font-semibold text-[#00f0ff] mt-0.5">
                       {(selectedResult.telemetry.beaconingScore * 100).toFixed(0)}%
                     </p>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/10">
-                    <span className="text-gray-400">DNS Entropy</span>
+                  <div className="p-2.5 rounded-sm bg-[#05070d] border border-white/[0.08]">
+                    <span className="text-gray-400 text-[11px]">DNS Entropy</span>
                     <p className="font-semibold text-white mt-0.5">
                       {selectedResult.telemetry.domainEntropy}
                     </p>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/10">
-                    <span className="text-gray-400">DNS Rate</span>
+                  <div className="p-2.5 rounded-sm bg-[#05070d] border border-white/[0.08]">
+                    <span className="text-gray-400 text-[11px]">DNS Rate</span>
                     <p className="font-semibold text-white mt-0.5">
                       {selectedResult.telemetry.dnsQueryRate} req/m
                     </p>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/10">
-                    <span className="text-gray-400">Out/In Ratio</span>
+                  <div className="p-2.5 rounded-sm bg-[#05070d] border border-white/[0.08]">
+                    <span className="text-gray-400 text-[11px]">Out/In Ratio</span>
                     <p className="font-semibold text-white mt-0.5">
                       {selectedResult.telemetry.outboundByteRatio}x
                     </p>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/10">
-                    <span className="text-gray-400">NXDOMAIN</span>
+                  <div className="p-2.5 rounded-sm bg-[#05070d] border border-white/[0.08]">
+                    <span className="text-gray-400 text-[11px]">NXDOMAIN</span>
                     <p className="font-semibold text-white mt-0.5">
                       {(selectedResult.telemetry.nxdomainRatio * 100).toFixed(0)}%
                     </p>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/10">
-                    <span className="text-gray-400">Tree Votes</span>
+                  <div className="p-2.5 rounded-sm bg-[#05070d] border border-white/[0.08]">
+                    <span className="text-gray-400 text-[11px]">Tree Votes</span>
                     <p className="font-semibold text-[#00ff88] mt-0.5">
                       {selectedResult.randomForest.treeVotes[selectedResult.riskCategory]}/
                       {selectedResult.randomForest.totalTrees}
@@ -594,8 +592,8 @@ export function URLScanner({
                 </div>
                 <ul className="space-y-2 text-sm text-gray-300">
                   {selectedResult.reasons.map((reason, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#00f0ff] mt-2 shrink-0" />
+                    <li key={idx} className="flex items-start gap-2.5">
+                      <span className="w-1.5 h-1.5 rounded-none bg-[#00f0ff] mt-2 shrink-0" />
                       <span>{reason}</span>
                     </li>
                   ))}

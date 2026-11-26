@@ -52,10 +52,10 @@ export function Navbar({ activePage, onNavigate }: NavbarProps) {
                 key={item.id}
                 type="button"
                 onClick={() => handleSelect(item.id)}
-                className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer font-medium ${
+                className={`px-3 py-1.5 rounded-sm transition-all cursor-pointer font-mono text-xs uppercase tracking-wider ${
                   isActive
-                    ? 'text-[#00f0ff] bg-cyan-500/15 border border-cyan-500/35 shadow-[0_0_15px_rgba(0,240,255,0.25)]'
-                    : 'hover:text-[#00f0ff] hover:bg-white/5'
+                    ? 'text-[#00f0ff] bg-cyan-500/15 border border-cyan-500/35'
+                    : 'hover:text-[#00f0ff] hover:bg-white/5 border border-transparent'
                 }`}
               >
                 {item.label}
@@ -68,7 +68,7 @@ export function Navbar({ activePage, onNavigate }: NavbarProps) {
         <button
           type="button"
           onClick={() => setMobileOpen((prev) => !prev)}
-          className="md:hidden p-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10"
+          className="md:hidden p-2 rounded-sm text-gray-300 hover:text-white hover:bg-white/10"
           aria-label="Toggle navigation"
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}

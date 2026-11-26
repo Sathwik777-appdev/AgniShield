@@ -152,12 +152,12 @@ export function DashboardStats({
         </div>
         <div className="flex items-center gap-3">
           {/* Switcher Button */}
-          <div className="flex items-center p-1 rounded-xl bg-slate-900/90 border border-slate-800">
+          <div className="flex items-center p-0.5 rounded-sm bg-[#060810] border border-white/10">
             <button
               onClick={() => setViewMode('graph')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-semibold font-mono transition-all cursor-pointer ${
                 viewMode === 'graph'
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(0,240,255,0.25)]'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -166,9 +166,9 @@ export function DashboardStats({
             </button>
             <button
               onClick={() => setViewMode('chart')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-semibold font-mono transition-all cursor-pointer ${
                 viewMode === 'chart'
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(0,240,255,0.25)]'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -177,7 +177,7 @@ export function DashboardStats({
             </button>
           </div>
 
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full bg-cyan-500/15 text-[#00f0ff] border border-cyan-500/30 shadow-[0_0_10px_rgba(0,240,255,0.15)]">
+          <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold px-2.5 py-1 rounded-sm bg-cyan-500/15 text-[#00f0ff] border border-cyan-500/30 uppercase tracking-wider">
             <Info className="w-3.5 h-3.5" />
             Live 200-Tree Forest
           </span>
@@ -189,16 +189,16 @@ export function DashboardStats({
         {statCards.map(({ label, value, Icon, accent }) => (
           <div
             key={label}
-            className="glass-card glass-card-hover rounded-2xl p-5 flex items-center justify-between border border-slate-800/80 hover:border-cyan-500/30 transition-all"
+            className="bg-[#090d16] border border-white/[0.08] rounded-md p-5 flex items-center justify-between hover:border-white/20 transition-all shadow-lg"
           >
             <div>
-              <p className="text-xs font-medium text-slate-400">{label}</p>
+              <p className="text-xs font-mono uppercase tracking-wider text-slate-400">{label}</p>
               <p className="text-3xl font-display font-bold text-white mt-1">{value}</p>
             </div>
             <div
-              className={`w-11 h-11 rounded-xl border flex items-center justify-center ${accent}`}
+              className={`w-9 h-9 rounded-sm border flex items-center justify-center ${accent}`}
             >
-              <Icon className="w-5 h-5" />
+              <Icon className="w-4 h-4" />
             </div>
           </div>
         ))}
@@ -293,7 +293,7 @@ export function DashboardStats({
                     key={scan.id}
                     type="button"
                     onClick={() => onOpenResult(scan)}
-                    className="w-full text-left p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-cyan-500/40 transition-all flex items-center justify-between gap-3 cursor-pointer group"
+                    className="w-full text-left p-2.5 rounded-sm bg-[#060810] hover:bg-slate-800/80 border border-white/[0.08] hover:border-cyan-500/40 transition-all flex items-center justify-between gap-3 cursor-pointer group"
                   >
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-slate-100 truncate group-hover:text-cyan-400 transition-colors">
@@ -318,7 +318,7 @@ export function DashboardStats({
               <button
                 type="button"
                 onClick={onGoToScanner}
-                className="mt-3 w-full py-2.5 rounded-xl text-xs font-bold text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 transition-all cursor-pointer shadow-[0_0_10px_rgba(0,240,255,0.1)] hover:shadow-[0_0_15px_rgba(0,240,255,0.2)]"
+                className="mt-3 w-full py-2 rounded text-xs font-bold text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 transition-all cursor-pointer font-mono uppercase tracking-wider"
               >
                 + Scan a New Website
               </button>

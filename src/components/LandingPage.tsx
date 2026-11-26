@@ -84,14 +84,13 @@ export function LandingPage({
         </p>
 
         {/* URL Scanner Input Area */}
-        <div className="w-full max-w-3xl relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/35 to-purple-500/35 rounded-2xl blur opacity-30 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 pointer-events-none" />
+        <div className="w-full max-w-3xl relative">
           <form
             onSubmit={handleSubmit}
-            className="relative flex flex-col md:flex-row gap-3 p-2 glass rounded-2xl"
+            className="relative flex flex-col md:flex-row gap-3 p-2 bg-[#090d16] border border-white/[0.09] rounded-md shadow-2xl"
           >
-            <div className="relative flex-1 flex items-center px-4 py-3">
-              <Globe className="text-gray-400 w-6 h-6 mr-3 shrink-0" />
+            <div className="relative flex-1 flex items-center px-4 py-3 bg-[#05070d] rounded-sm border border-white/[0.06] focus-within:border-[#00f0ff]">
+              <Globe className="text-gray-400 w-5 h-5 mr-3 shrink-0" />
               <input
                 type="text"
                 value={url}
@@ -100,12 +99,12 @@ export function LandingPage({
                   if (error) setError(null);
                 }}
                 placeholder="https://enter-website-url.com/scan"
-                className="w-full bg-transparent text-white placeholder-gray-500 border-none focus:outline-none focus:ring-0 text-base sm:text-lg"
+                className="w-full bg-transparent text-white placeholder-gray-500 border-none focus:outline-none focus:ring-0 text-base font-mono"
               />
             </div>
             <button
               type="submit"
-              className="bg-white text-neutral-950 font-semibold text-sm sm:text-base px-7 py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors active:scale-[0.98] group/btn cursor-pointer shrink-0 shadow-sm"
+              className="bg-white text-neutral-950 font-semibold text-sm sm:text-base px-7 py-3 rounded flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors active:scale-[0.98] group/btn cursor-pointer shrink-0 shadow-sm"
             >
               <span>Analyze URL</span>
               <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform" />
@@ -156,19 +155,19 @@ export function LandingPage({
           {TRUST_CARDS.map(({ title, description, Icon, iconBg, cardHover, titleHover }) => (
             <div
               key={title}
-              className={`glass p-7 rounded-3xl text-left transition-all group ${cardHover}`}
+              className={`bg-[#090d16] p-6 rounded-md border border-white/[0.08] text-left transition-all hover:border-white/20 ${cardHover}`}
             >
               <div
-                className={`w-11 h-11 rounded-xl flex items-center justify-center mb-5 border ${iconBg}`}
+                className={`w-9 h-9 rounded-sm flex items-center justify-center mb-4 border ${iconBg}`}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="w-4 h-4" />
               </div>
               <h3
-                className={`text-lg font-bold mb-1.5 text-white transition-colors ${titleHover}`}
+                className={`text-base font-bold mb-1.5 text-white transition-colors ${titleHover}`}
               >
                 {title}
               </h3>
-              <p className="text-gray-400 text-sm leading-relaxed">
+              <p className="text-gray-400 text-xs leading-relaxed">
                 {description}
               </p>
             </div>

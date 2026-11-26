@@ -84,12 +84,12 @@ export const AiAnalystCard: React.FC<AiAnalystCardProps> = ({ scan }) => {
   }, [scan]);
 
   return (
-    <div className="glass rounded-3xl p-6 sm:p-7 border border-white/10 shadow-xl">
+    <div className="bg-[#090d16] border border-white/[0.09] rounded-md p-6 sm:p-7 shadow-xl">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/[0.08]">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center">
-            <Bot className="w-5 h-5 text-slate-200" />
+          <div className="w-9 h-9 rounded-sm bg-white/[0.06] border border-white/10 flex items-center justify-center">
+            <Bot className="w-4 h-4 text-slate-200" />
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-display font-bold text-white tracking-tight">
@@ -102,13 +102,13 @@ export const AiAnalystCard: React.FC<AiAnalystCardProps> = ({ scan }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 text-xs font-mono px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 text-slate-300">
+          <span className="inline-flex items-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-sm bg-white/[0.05] border border-white/10 text-slate-300">
             <Sparkles className="w-3.5 h-3.5 text-slate-400" />
             Automated Assessment
           </span>
           <button
             onClick={() => setExpanded(!expanded)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white bg-white/5 border border-white/10 cursor-pointer"
+            className="p-1.5 rounded-sm text-gray-400 hover:text-white bg-white/5 border border-white/10 cursor-pointer"
           >
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -123,9 +123,9 @@ export const AiAnalystCard: React.FC<AiAnalystCardProps> = ({ scan }) => {
       )}
 
       {!loading && data && expanded && (
-        <div className="space-y-6 pt-5">
+        <div className="space-y-5 pt-5">
           {/* Executive Summary */}
-          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.08] text-sm text-gray-200 leading-relaxed font-sans">
+          <div className="p-3.5 rounded-sm bg-[#05070d] border border-white/[0.08] text-sm text-gray-200 leading-relaxed font-sans">
             <span className="text-slate-400 font-semibold font-mono text-xs uppercase tracking-wider block mb-1">
               Diagnostic Summary
             </span>
@@ -144,12 +144,12 @@ export const AiAnalystCard: React.FC<AiAnalystCardProps> = ({ scan }) => {
                 {data.issues?.map((issue, idx) => (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-xl bg-black/40 border border-white/[0.06] hover:border-white/15 transition-all"
+                    className="p-3 rounded-sm bg-[#05070d] border border-white/[0.08] hover:border-white/20 transition-all"
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="text-xs font-bold text-white">{issue.component}</span>
+                      <span className="text-xs font-bold text-white font-mono">{issue.component}</span>
                       <span
-                        className={`text-[10px] font-mono font-extrabold px-2 py-0.5 rounded border uppercase ${
+                        className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-sm border uppercase ${
                           SEVERITY_BADGE[issue.severity] || SEVERITY_BADGE.LOW
                         }`}
                       >
@@ -175,15 +175,15 @@ export const AiAnalystCard: React.FC<AiAnalystCardProps> = ({ scan }) => {
                   data.remediations.map((item, idx) => (
                     <div
                       key={idx}
-                      className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/15 transition-all"
+                      className="p-3 rounded-sm bg-[#05070d] border border-white/[0.08] hover:border-white/20 transition-all"
                     >
                       <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-white flex items-center gap-1.5 font-mono">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                           {item.action}
                         </span>
                         <span
-                          className={`text-[10px] font-mono font-extrabold px-2 py-0.5 rounded border uppercase ${
+                          className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-sm border uppercase ${
                             PRIORITY_BADGE[item.priority] || PRIORITY_BADGE.P2
                           }`}
                         >
@@ -194,7 +194,7 @@ export const AiAnalystCard: React.FC<AiAnalystCardProps> = ({ scan }) => {
                     </div>
                   ))
                 ) : (
-                  <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs text-slate-400">
+                  <div className="p-3 rounded-sm bg-[#05070d] border border-white/[0.08] text-xs text-slate-400 font-mono">
                     No remediation required — all checked telemetry parameters are within safe baseline thresholds.
                   </div>
                 )}

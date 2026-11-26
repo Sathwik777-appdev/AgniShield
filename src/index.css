@@ -25,29 +25,26 @@
   font-family: 'Clash Grotesk', 'Space Grotesk', sans-serif;
 }
 
-/* Refined translucent dark obsidian glass */
+/* Sleek, solid obsidian engineering panels - enterprise SOC grade */
 .glass {
-  background: rgba(10, 13, 22, 0.42);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #090d16;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
 .glass-card {
-  background: rgba(10, 13, 22, 0.48);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  background: #090d16;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
 }
 
 .glass-card-hover {
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .glass-card-hover:hover {
   border-color: rgba(0, 240, 255, 0.35);
-  box-shadow: 0 14px 44px rgba(0, 240, 255, 0.14);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.7);
 }
 
 .glow-cyan {

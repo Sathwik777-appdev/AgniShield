@@ -22,11 +22,11 @@ export function ScanHistory({ items, onOpenResult }: ScanHistoryProps) {
       </div>
 
       {items.length === 0 ? (
-        <div className="glass-card rounded-2xl p-10 text-center text-slate-400 text-sm">
+        <div className="bg-[#090d16] border border-white/[0.08] rounded-md p-10 text-center text-slate-400 text-sm">
           No scans recorded yet. Run a URL scan to see results here.
         </div>
       ) : (
-        <div className="glass-card rounded-2xl overflow-hidden">
+        <div className="bg-[#090d16] border border-white/[0.08] rounded-md overflow-hidden">
           <div className="divide-y divide-slate-800/80">
             {items.map((item) => (
               <button
