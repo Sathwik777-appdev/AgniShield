@@ -5,7 +5,7 @@
  * and dispatches warning messages to the content script if a threat is detected.
  */
 
-const API_BASE = "http://127.0.0.1:8000/api/v1/scan";
+const API_BASE = "https://agnishield.onrender.com/api/v1/scan";
 const CACHE_TTL_MS = 1000 * 60 * 30; // 30 minutes cache
 
 // In-memory scan cache
