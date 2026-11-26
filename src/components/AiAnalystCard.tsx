@@ -55,12 +55,11 @@ const PRIORITY_BADGE = {
 
 export const AiAnalystCard: React.FC<AiAnalystCardProps> = ({ scan }) => {
   const [data, setData] = useState<AiAnalysisResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
-    setLoading(true);
 
     fetch('/api/v1/analyze/ai', {
       method: 'POST',

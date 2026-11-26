@@ -10,7 +10,7 @@ import {
   TrendingUp,
   Upload,
 } from 'lucide-react';
-import { useState, type ChangeEvent } from 'react';
+import { useMemo, useState, type ChangeEvent } from 'react';
 import {
   Area,
   AreaChart,
@@ -81,15 +81,17 @@ export function DashboardStats({
   ].filter((d) => d.value > 0);
 
   // Real chronological time-series derived strictly from persisted scan history
-  const timelineData = (() => {
+  const timelineData = useMemo(() => {
     const ordered = [...recentScans].slice(0, 20).reverse();
-    let cumSafe = 0;
-    let cumThreats = 0;
-    return ordered.map((scan, idx) => {
+    let safeAcc = 0;
+    let threatAcc = 0;
+    const points = [];
+    for (let idx = 0; idx < ordered.length; idx++) {
+      const scan = ordered[idx];
       if (scan.riskCategory === 'Safe') {
-        cumSafe += 1;
+        safeAcc += 1;
       } else {
-        cumThreats += 1;
+        threatAcc += 1;
       }
       let timeLabel = `#${idx + 1}`;
       try {
@@ -100,15 +102,16 @@ export function DashboardStats({
       } catch {
         // Fallback to index label
       }
-      return {
+      points.push({
         time: timeLabel,
-        safe: cumSafe,
-        threats: cumThreats,
+        safe: safeAcc,
+        threats: threatAcc,
         entropy: scan.telemetry?.domainEntropy ?? 0,
         score: scan.safetyScore,
-      };
-    });
-  })();
+      });
+    }
+    return points;
+  }, [recentScans]);
 
   const statCards = [
     {

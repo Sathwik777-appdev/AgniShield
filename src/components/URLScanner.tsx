@@ -18,7 +18,7 @@ import {
   XCircle,
   Zap,
 } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { extractTelemetryFeatures, validateUrl, type TelemetryPreset } from '../services/scanService';
 import type { CheckStatus, ScanResult } from '../types/scan';
 import { generateAuditPdfReport } from '../utils/pdfGenerator';
@@ -27,9 +27,9 @@ import { AnalysisCard } from './AnalysisCard';
 import { RiskBadge } from './RiskBadge';
 import {
   ScanBlueprintAnimation,
-  getTargetDataCenter,
   type GlobeTelemetry,
 } from './ScanBlueprintAnimation';
+import { getTargetDataCenter } from '../utils/geoData';
 import { SecurityScore } from './SecurityScore';
 
 interface URLScannerProps {
@@ -55,12 +55,13 @@ export function URLScanner({
   selectedResult,
   isScanning,
 }: URLScannerProps) {
+  const [prevSelectedUrl, setPrevSelectedUrl] = useState(selectedResult?.url);
   const [inputUrl, setInputUrl] = useState(selectedResult?.url ?? '');
-  useEffect(() => {
-    if (selectedResult?.url) {
-      setInputUrl(selectedResult.url);
-    }
-  }, [selectedResult?.url]);
+
+  if (selectedResult?.url && selectedResult.url !== prevSelectedUrl) {
+    setPrevSelectedUrl(selectedResult.url);
+    setInputUrl(selectedResult.url);
+  }
   const [preset, setPreset] = useState<TelemetryPreset>('auto');
   const [error, setError] = useState<string | null>(null);
   const initialDc = getTargetDataCenter(selectedResult?.url ?? '');

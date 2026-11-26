@@ -46,7 +46,9 @@ export const ThreatTopologyGraph: React.FC<ThreatTopologyGraphProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const hoveredNodeRef = useRef<GraphNode | null>(null);
   const onSelectScanRef = useRef(onSelectScan);
-  onSelectScanRef.current = onSelectScan;
+  useEffect(() => {
+    onSelectScanRef.current = onSelectScan;
+  }, [onSelectScan]);
 
   const [hoveredInfo, setHoveredInfo] = useState<GraphNode | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<
