@@ -297,5 +297,5 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ---
 
 <div align="center">
-Developed with ❤️ by <b>Sathwik J Poojary</b> for the Cybersecurity Community.
+Developed with ❤️ by <b>Agnivox</b> for the Cybersecurity Community.
 </div>
