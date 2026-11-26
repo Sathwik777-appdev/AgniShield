@@ -9,14 +9,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   const telemetryEl = document.getElementById("telemetry-info");
   const rescanBtn = document.getElementById("rescan-btn");
 
-  // Query active tab
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab || !tab.url) {
     urlEl.textContent = "No active web page detected";
+    rescanBtn.disabled = true;
     return;
   }
 
   urlEl.textContent = tab.url;
+
+  const isHttp = tab.url.startsWith("http://") || tab.url.startsWith("https://");
+  if (!isHttp) {
+    scoreEl.textContent = "N/A";
+    scoreEl.style.color = "#94a3b8";
+    badgeEl.className = "status-badge badge-safe";
+    badgeEl.textContent = "SYSTEM";
+    telemetryEl.textContent = "Browser internal pages do not require threat scanning.";
+    rescanBtn.disabled = true;
+    return;
+  }
 
   function escapeHtml(str) {
     return String(str ?? "")
@@ -27,13 +38,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       .replace(/'/g, "&#39;");
   }
 
-  function displayScan(scan) {
+  function displayScan(scan, errorMsg) {
     if (!scan) {
-      scoreEl.textContent = "Unscanned";
+      scoreEl.textContent = errorMsg ? "Offline" : "Unscanned";
       scoreEl.style.color = "#94a3b8";
-      badgeEl.className = "status-badge badge-safe";
-      badgeEl.textContent = "READY";
-      telemetryEl.innerHTML = "Click 'Re-Scan Active Tab' to run a deep 200-tree assessment.";
+      badgeEl.className = errorMsg ? "status-badge badge-warn" : "status-badge badge-safe";
+      badgeEl.textContent = errorMsg ? "RETRY" : "READY";
+      telemetryEl.textContent =
+        errorMsg || "Click 'Re-Scan Active Tab' to run a 200-tree assessment.";
       return;
     }
 
@@ -60,16 +72,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     `;
   }
 
-  // Get cached status from background worker
-  chrome.runtime.sendMessage({ type: "GET_TAB_THREAT_STATUS", url: tab.url }, (res) => {
-    if (res && res.scan) {
-      displayScan(res.scan);
-    } else {
-      // Trigger scan automatically
-      triggerScan();
-    }
-  });
-
   function triggerScan() {
     rescanBtn.textContent = "Scanning with 200 trees...";
     rescanBtn.disabled = true;
@@ -77,11 +79,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     chrome.runtime.sendMessage({ type: "MANUAL_SCAN_REQUEST", url: tab.url }, (res) => {
       rescanBtn.textContent = "Re-Scan Active Tab";
       rescanBtn.disabled = false;
-      if (res && res.scan) {
-        displayScan(res.scan);
+      if (chrome.runtime.lastError || !res || !res.scan) {
+        displayScan(
+          null,
+          "Backend unreachable or waking up (Render cold-start takes ~20s). Try again shortly."
+        );
+        return;
       }
+      displayScan(res.scan);
     });
   }
+
+  chrome.runtime.sendMessage({ type: "GET_TAB_THREAT_STATUS", url: tab.url }, (res) => {
+    if (chrome.runtime.lastError) {
+      triggerScan();
+      return;
+    }
+    if (res && res.scan) {
+      displayScan(res.scan);
+    } else {
+      triggerScan();
+    }
+  });
 
   rescanBtn.addEventListener("click", triggerScan);
 });

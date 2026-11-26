@@ -499,7 +499,6 @@ export function ScanBlueprintAnimation({
     let frameId = 0;
     const clock = new THREE.Clock();
     let lastTicker = 0;
-    let packetCounter = 1420;
     let smoothCamX = 0;
     let smoothCamY = 0.2;
 
@@ -532,20 +531,16 @@ export function ScanBlueprintAnimation({
       camera.position.y = smoothCamY;
       camera.lookAt(0, 0, 0);
 
-      if (elapsed - lastTicker > 0.15) {
+      if (elapsed - lastTicker > 0.25) {
         lastTicker = elapsed;
-        packetCounter += Math.floor(Math.random() * 9 + 4);
-        const altVal = (418.0 + Math.cos(elapsed * 1.8) * 0.7).toFixed(1);
-        const dopplerVal = (-14.0 + Math.sin(elapsed * 2.4) * 0.8).toFixed(1);
-
         telemetryCbRef.current?.({
           city: activeDc.city,
           asn: activeDc.asn,
           lat: activeDc.latStr,
           lon: activeDc.lonStr,
-          alt: `${altVal} km`,
-          doppler: `${dopplerVal} kHz`,
-          packets: packetCounter,
+          alt: 'Live Check',
+          doppler: 'X.509 / A-Rec',
+          packets: 10,
         });
       }
 

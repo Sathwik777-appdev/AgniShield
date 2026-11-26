@@ -262,8 +262,22 @@ export async function scanWebsite(
     if (response.ok) {
       return (await response.json()) as ScanResult;
     }
-  } catch {
-    // Backend unavailable; fall back to local TypeScript Random Forest
+    if (response.status >= 400 && response.status < 500) {
+      let detail = `Scan failed with status ${response.status}`;
+      try {
+        const errBody = await response.json();
+        if (errBody?.detail) detail = String(errBody.detail);
+      } catch {
+        // Ignore JSON parse error
+      }
+      throw new Error(detail);
+    }
+  } catch (err) {
+    if (err instanceof TypeError) {
+      // Network error: backend unreachable; fall back to local TypeScript Random Forest
+    } else {
+      throw err;
+    }
   }
 
   // Simulate telemetry collection & model inference latency
@@ -298,7 +312,7 @@ export async function scanWebsite(
     c2Verdict,
     telemetry,
     randomForest,
-    isMock: false,
+    isMock: true,
   };
 }
 

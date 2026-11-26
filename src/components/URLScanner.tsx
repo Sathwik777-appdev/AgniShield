@@ -19,7 +19,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
-import { validateUrl, type TelemetryPreset } from '../services/scanService';
+import { extractTelemetryFeatures, validateUrl, type TelemetryPreset } from '../services/scanService';
 import type { CheckStatus, ScanResult } from '../types/scan';
 import { generateAuditPdfReport } from '../utils/pdfGenerator';
 import { AiAnalystCard } from './AiAnalystCard';
@@ -92,6 +92,16 @@ export function URLScanner({
       );
     }
   };
+
+  const livePreviewTelemetry = (() => {
+    const v = validateUrl(inputUrl);
+    if (!v.valid || !v.normalizedUrl) return null;
+    try {
+      return extractTelemetryFeatures(v.normalizedUrl, preset);
+    } catch {
+      return null;
+    }
+  })();
 
   const quickExamples = [
     'https://github.com',
@@ -217,20 +227,20 @@ export function URLScanner({
                 </span>
               </span>
               <span className="hidden sm:inline text-white/20">•</span>
-              <span className="hidden sm:inline text-cyan-300">
-                {globeTelemetry.city} ({globeTelemetry.asn})
+              <span className="hidden sm:inline text-slate-300">
+                Live DNS + TLS Inspection
               </span>
             </div>
 
             <div className="flex items-center gap-4 text-gray-400">
-              <span className="flex items-center gap-1.5 text-cyan-300 whitespace-nowrap">
-                <Radio className="w-3.5 h-3.5 text-[#00f0ff] animate-pulse" />
-                {globeTelemetry.packets} PKTS
+              <span className="flex items-center gap-1.5 text-slate-300 whitespace-nowrap">
+                <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                10-FEATURE VECTOR
               </span>
               <span className="text-white/20">•</span>
-              <span className="text-purple-300 flex items-center gap-1.5 whitespace-nowrap">
-                <Cpu className="w-3.5 h-3.5 text-[#9d00ff]" />
-                ALT {globeTelemetry.alt}
+              <span className="text-slate-300 flex items-center gap-1.5 whitespace-nowrap">
+                <Cpu className="w-3.5 h-3.5 text-slate-400" />
+                {globeTelemetry.alt}
               </span>
             </div>
           </div>
@@ -240,36 +250,40 @@ export function URLScanner({
             {/* Left Floating Stream */}
             <div className="lg:col-span-3 space-y-3 py-4">
               <div className="flex items-center gap-2 text-[11px] font-mono font-semibold text-gray-400 uppercase tracking-widest pb-2 border-b border-white/[0.06]">
-                <Globe className="w-3.5 h-3.5 text-[#00f0ff]" />
-                <span>Orbital Telemetry</span>
+                <Globe className="w-3.5 h-3.5 text-slate-300" />
+                <span>Real-Time Pre-Scan</span>
               </div>
 
               <div className="space-y-2.5 text-xs font-mono">
                 <div className="flex items-center justify-between gap-2 py-1 border-b border-white/[0.04]">
-                  <span className="text-gray-400 whitespace-nowrap">Target Coord</span>
+                  <span className="text-gray-400 whitespace-nowrap">Protocol</span>
                   <span className="text-white whitespace-nowrap">
-                    {globeTelemetry.lat}, {globeTelemetry.lon}
+                    {livePreviewTelemetry?.httpsEnabled === 0 ? 'HTTP (Unencrypted)' : 'HTTPS'}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between gap-2 py-1 border-b border-white/[0.04]">
                   <span className="text-gray-400 whitespace-nowrap">DNS Lookup</span>
-                  <span className="text-[#00f0ff] whitespace-nowrap">Querying A-Record</span>
+                  <span className="text-slate-200 whitespace-nowrap">Querying A-Record</span>
                 </div>
 
                 <div className="flex items-center justify-between gap-2 py-1 border-b border-white/[0.04]">
                   <span className="text-gray-400 whitespace-nowrap">TLS Chain</span>
-                  <span className="text-[#00ff88] whitespace-nowrap">X.509 Handshake</span>
+                  <span className="text-emerald-400 whitespace-nowrap">X.509 Handshake</span>
                 </div>
 
                 <div className="flex items-center justify-between gap-2 py-1 border-b border-white/[0.04]">
-                  <span className="text-gray-400 whitespace-nowrap">Shannon Entropy</span>
-                  <span className="text-cyan-200 whitespace-nowrap">3.24 bits</span>
+                  <span className="text-gray-400 whitespace-nowrap">Domain Entropy</span>
+                  <span className="text-white whitespace-nowrap">
+                    {livePreviewTelemetry ? `${livePreviewTelemetry.domainEntropy} bits` : '--'}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between gap-2 py-1">
-                  <span className="text-gray-400 whitespace-nowrap">Doppler Shift</span>
-                  <span className="text-purple-300 whitespace-nowrap">{globeTelemetry.doppler}</span>
+                  <span className="text-gray-400 whitespace-nowrap">Subdomains</span>
+                  <span className="text-slate-200 whitespace-nowrap">
+                    {livePreviewTelemetry ? livePreviewTelemetry.subdomainCount : 0}
+                  </span>
                 </div>
               </div>
             </div>
@@ -374,20 +388,32 @@ export function URLScanner({
                   <span className="inline-flex items-center gap-1 text-xs font-mono font-medium px-3 py-1 rounded-full border bg-purple-500/15 text-purple-300 border-purple-500/30">
                     C2: {selectedResult.c2Verdict}
                   </span>
-                  <span
-                    className={`inline-flex items-center gap-1 text-xs font-mono font-medium px-3 py-1 rounded-full border ${
-                      selectedResult.httpsEnabled
-                        ? 'bg-emerald-500/10 text-[#00ff88] border-emerald-500/30'
-                        : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
-                    }`}
-                  >
-                    {selectedResult.httpsEnabled ? (
-                      <Lock className="w-3.5 h-3.5" />
-                    ) : (
-                      <LockOpen className="w-3.5 h-3.5" />
-                    )}
-                    {selectedResult.httpsEnabled ? 'HTTPS Valid' : 'No HTTPS'}
-                  </span>
+                  {(() => {
+                    const httpsCheck = selectedResult.checklist.find((c) => c.id === 'https');
+                    const tlsStatus = httpsCheck?.status ?? (selectedResult.httpsEnabled ? 'pass' : 'fail');
+                    return (
+                      <span
+                        className={`inline-flex items-center gap-1 text-xs font-mono font-medium px-3 py-1 rounded-full border ${
+                          tlsStatus === 'pass'
+                            ? 'bg-emerald-500/10 text-[#00ff88] border-emerald-500/30'
+                            : tlsStatus === 'warn'
+                              ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                              : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                        }`}
+                      >
+                        {selectedResult.httpsEnabled ? (
+                          <Lock className="w-3.5 h-3.5" />
+                        ) : (
+                          <LockOpen className="w-3.5 h-3.5" />
+                        )}
+                        {tlsStatus === 'pass'
+                          ? 'TLS Verified'
+                          : tlsStatus === 'warn'
+                            ? 'HTTPS (Unverified TLS)'
+                            : 'No HTTPS'}
+                      </span>
+                    );
+                  })()}
                 </div>
 
                 <p className="text-xl sm:text-2xl font-display font-bold text-white break-all">

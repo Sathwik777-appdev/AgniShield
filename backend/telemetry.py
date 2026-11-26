@@ -76,8 +76,8 @@ def extract_features(normalized_url: str, preset: str = "auto") -> tuple[dict, d
     parsed = urlparse(normalized_url)
     hostname = (parsed.hostname or "").lower()
 
-    # Get features from the unified pipeline (same as training)
-    features = domain_to_features_dict(hostname)
+    # Get features from the unified pipeline (pass full URL so path keywords & scheme are preserved)
+    features = domain_to_features_dict(normalized_url)
 
     # Override httpsEnabled with the ACTUAL protocol (this is the one
     # feature that cannot be known at training time but CAN be known at

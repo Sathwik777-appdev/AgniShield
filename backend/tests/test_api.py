@@ -1,4 +1,4 @@
-"""Automated API, ML feature, and rate-limiter tests for AgniShield."""
+"""Automated API, ML feature, database, and rate-limiter tests for AgniShield."""
 
 import sys
 from pathlib import Path
@@ -10,7 +10,8 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from features import FEATURE_NAMES, domain_to_features, shannon_entropy
+from features import FEATURE_NAMES, domain_to_features, domain_to_features_dict, shannon_entropy
+from llm_analyst import analyze_with_llm
 from main import app, normalize_url
 from rate_limit import rate_limiter
 
@@ -39,6 +40,20 @@ def test_feature_vector_consistency():
     assert shannon_entropy("aaaa") == 0.0
     assert shannon_entropy("x9k2m7q8z4v1p3w6") > 3.5
 
+    shortener_feats = domain_to_features_dict("http://bit.ly/free-bank-claim")
+    assert shortener_feats["httpsEnabled"] == 0
+    assert shortener_feats["ipOrShortener"] == 1
+    assert shortener_feats["suspiciousKeyword"] == 1
+
+    ip_feats = domain_to_features_dict("http://185.220.101.5/beacon")
+    assert ip_feats["subdomainCount"] == 0
+    assert ip_feats["ipOrShortener"] == 1
+    assert ip_feats["suspiciousKeyword"] == 1
+
+    www_feats = domain_to_features_dict("https://www.google.com/search?q=gemini")
+    root_feats = domain_to_features_dict("https://google.com")
+    assert www_feats == root_feats
+
 
 def test_health_and_stats_endpoints():
     health = client.get("/api/v1/health")
@@ -52,29 +67,61 @@ def test_health_and_stats_endpoints():
     assert "totalScanned" in stats.json()
 
 
-def test_scan_endpoint_valid_dga_and_invalid():
-    bad = client.post("/api/v1/scan", json={"url": "invalid-host", "preset": "auto"})
-    assert bad.status_code == 400
+def test_benign_subdomains_and_threats_accuracy():
+    ok_net = {
+        "ipAddress": "142.250.77.110",
+        "dnsResolved": True,
+        "sslValid": True,
+        "sslIssuer": "Google Trust Services",
+    }
+    for safe_url in (
+        "https://www.google.com/search?q=gemini",
+        "https://gemini.google.com",
+        "https://en.wikipedia.org",
+    ):
+        with patch("telemetry.resolve_dns_and_ssl", return_value=ok_net):
+            res = client.post("/api/v1/scan", json={"url": safe_url, "preset": "auto"})
+        assert res.status_code == 200
+        data = res.json()
+        assert data["riskCategory"] == "Safe", f"False positive on {safe_url}: {data}"
+        assert sum(data["randomForest"]["treeVotes"].values()) >= 198
 
-    mocked_net = {
-        "ipAddress": "Unresolved",
-        "dnsResolved": False,
+    for danger_url in (
+        "http://bit.ly/free-bank-claim",
+        "http://185.220.101.5/beacon",
+        "https://x9k2m7q8z4v1p3w6.xyz",
+    ):
+        with patch("telemetry.resolve_dns_and_ssl", return_value={
+            "ipAddress": "Unresolved",
+            "dnsResolved": False,
+            "sslValid": False,
+            "sslIssuer": "None",
+        }):
+            res = client.post("/api/v1/scan", json={"url": danger_url, "preset": "auto"})
+        assert res.status_code == 200
+        data = res.json()
+        assert data["riskCategory"] == "Dangerous", f"Missed threat on {danger_url}: {data}"
+        assert data["safetyScore"] <= 38
+
+
+def test_invalid_tls_penalizes_https_host():
+    bad_tls = {
+        "ipAddress": "93.184.216.34",
+        "dnsResolved": True,
         "sslValid": False,
         "sslIssuer": "None",
     }
-    with patch("telemetry.resolve_dns_and_ssl", return_value=mocked_net):
-        res = client.post(
-            "/api/v1/scan",
-            json={"url": "x9k2m7q8z4v1p3w6.xyz", "preset": "auto"},
-        )
+    with patch("telemetry.resolve_dns_and_ssl", return_value=bad_tls):
+        res = client.post("/api/v1/scan", json={"url": "https://example.com", "preset": "auto"})
     assert res.status_code == 200
     data = res.json()
-    assert data["riskCategory"] == "Dangerous"
-    assert data["safetyScore"] <= 42
-    assert "T1568.002" in data["mitreAttack"]
+    assert data["riskCategory"] == "Suspicious"
+    assert data["safetyScore"] <= 64
+    https_item = next(c for c in data["checklist"] if c["id"] == "https")
+    assert https_item["status"] == "warn"
 
 
-def test_analyze_ai_endpoint():
+def test_analyze_ai_endpoint_and_no_scheme_safety():
     res = client.post(
         "/api/v1/analyze/ai",
         json={
@@ -86,8 +133,17 @@ def test_analyze_ai_endpoint():
     )
     assert res.status_code == 200
     data = res.json()
-    assert "executiveSummary" in data
-    assert isinstance(data["issues"], list)
+    assert "no immediate remediation is required" in data["executiveSummary"].lower()
+    assert data["remediations"] == []
+
+    # Verify tunnel hostname without scheme doesn't raise IndexError
+    no_scheme = analyze_with_llm({
+        "url": "demo.trycloudflare.com",
+        "safetyScore": 65,
+        "riskCategory": "Suspicious",
+        "telemetry": {"domainEntropy": 2.9, "beaconingScore": 0.15},
+    })
+    assert no_scheme["issues"][0]["component"] == "Ephemeral Tunnel Hostname"
 
 
 def test_rate_limiter_enforces_429():

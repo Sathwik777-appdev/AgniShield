@@ -42,6 +42,7 @@ export function DashboardStats({
   onGoToScanner,
 }: DashboardStatsProps) {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [uploadIsError, setUploadIsError] = useState(false);
   const [isTraining, setIsTraining] = useState(false);
   const [viewMode, setViewMode] = useState<'graph' | 'chart'>('graph');
 
@@ -50,6 +51,7 @@ export function DashboardStats({
     if (!file) return;
     setIsTraining(true);
     setUploadStatus(null);
+    setUploadIsError(false);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -63,6 +65,7 @@ export function DashboardStats({
         `Retrained Random Forest on ${data.uploadedSamples} uploaded samples (${data.validationAccuracy}% validation accuracy).`
       );
     } catch (err) {
+      setUploadIsError(true);
       setUploadStatus(
         err instanceof Error ? err.message : 'Unable to reach backend API.'
       );
@@ -72,19 +75,40 @@ export function DashboardStats({
   };
 
   const chartData = [
-    { name: 'Safe', value: Math.max(stats.safeCount, 1), color: '#10b981' },
+    { name: 'Safe', value: stats.safeCount, color: '#10b981' },
     { name: 'Suspicious', value: stats.suspiciousCount, color: '#f59e0b' },
     { name: 'Dangerous', value: stats.dangerousCount, color: '#f43f5e' },
   ].filter((d) => d.value > 0);
 
-  // Time-series mock / historical telemetry data for high-tech area chart
-  const timelineData = [
-    { time: '10:00', safe: 12, threats: 1, entropy: 2.1 },
-    { time: '12:00', safe: 24, threats: 3, entropy: 2.8 },
-    { time: '14:00', safe: 45, threats: 6, entropy: 3.4 },
-    { time: '16:00', safe: 68, threats: 9, entropy: 3.9 },
-    { time: '18:00', safe: Math.max(stats.safeCount * 5, 85), threats: Math.max((stats.dangerousCount + stats.suspiciousCount) * 4, 14), entropy: 4.1 },
-  ];
+  // Real chronological time-series derived strictly from persisted scan history
+  const timelineData = (() => {
+    const ordered = [...recentScans].slice(0, 20).reverse();
+    let cumSafe = 0;
+    let cumThreats = 0;
+    return ordered.map((scan, idx) => {
+      if (scan.riskCategory === 'Safe') {
+        cumSafe += 1;
+      } else {
+        cumThreats += 1;
+      }
+      let timeLabel = `#${idx + 1}`;
+      try {
+        timeLabel = new Date(scan.scannedAt).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      } catch {
+        // Fallback to index label
+      }
+      return {
+        time: timeLabel,
+        safe: cumSafe,
+        threats: cumThreats,
+        entropy: scan.telemetry?.domainEntropy ?? 0,
+        score: scan.safetyScore,
+      };
+    });
+  })();
 
   const statCards = [
     {
@@ -194,57 +218,62 @@ export function DashboardStats({
               icon={<TrendingUp className="w-4 h-4 text-cyan-400" />}
             >
               <div className="h-64 w-full pt-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={timelineData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="cyanGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#00f0ff" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#00f0ff" stopOpacity={0.0} />
-                      </linearGradient>
-                      <linearGradient id="roseGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.5} />
-                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="time" stroke="#64748b" fontSize={11} tickLine={false} />
-                    <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#0a0f1d',
-                        borderColor: 'rgba(0, 240, 255, 0.3)',
-                        borderRadius: '0.75rem',
-                        boxShadow: '0 0 15px rgba(0, 240, 255, 0.15)',
-                        color: '#f8fafc',
-                        fontSize: '12px',
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="safe"
-                      stroke="#00f0ff"
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#cyanGradient)"
-                      name="Legitimate Traffic"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="threats"
-                      stroke="#f43f5e"
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#roseGradient)"
-                      name="Intercepted C2 Threats"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {timelineData.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-xs font-mono text-slate-500">
+                    No scan records yet — run a scan to populate real telemetry drift.
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={timelineData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="cyanGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#00f0ff" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#00f0ff" stopOpacity={0.0} />
+                        </linearGradient>
+                        <linearGradient id="roseGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.5} />
+                          <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="time" stroke="#64748b" fontSize={11} tickLine={false} />
+                      <YAxis stroke="#64748b" fontSize={11} tickLine={false} allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#0a0f1d',
+                          borderColor: 'rgba(255, 255, 255, 0.15)',
+                          borderRadius: '0.75rem',
+                          color: '#f8fafc',
+                          fontSize: '12px',
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="safe"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#cyanGradient)"
+                        name="Cumulative Safe Scans"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="threats"
+                        stroke="#f43f5e"
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#roseGradient)"
+                        name="Cumulative Flagged Scans"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </div>
               <div className="flex items-center justify-between text-xs text-slate-400 mt-2 font-mono px-2">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-cyan-400" /> Legitimate Traffic (Flow Logs)
+                  <span className="w-2.5 h-2.5 rounded bg-emerald-500" /> Safe Scans ({stats.safeCount})
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-rose-500" /> Malicious C2 / DGA Beacons
+                  <span className="w-2.5 h-2.5 rounded bg-rose-500" /> Flagged Scans ({stats.suspiciousCount + stats.dangerousCount})
                 </span>
               </div>
             </AnalysisCard>
@@ -408,7 +437,13 @@ export function DashboardStats({
             <span className="text-xs text-cyan-300 font-mono animate-pulse">Retraining 200 Decision Trees in backend...</span>
           )}
           {uploadStatus && (
-            <span className="text-xs text-emerald-300 font-mono">{uploadStatus}</span>
+            <span
+              className={`text-xs font-mono ${
+                uploadIsError ? 'text-rose-400' : 'text-emerald-300'
+              }`}
+            >
+              {uploadStatus}
+            </span>
           )}
         </div>
       </AnalysisCard>

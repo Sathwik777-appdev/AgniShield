@@ -99,25 +99,31 @@ def init_db():
         _PG_ACTIVE = False
         logger.warning(f"PostgreSQL not ready, active fallback to SQLite: {e}")
 
-    # 2. Local fallback SQLite schema
+    # 2. Local fallback SQLite schema (migrate away legacy payload_json table if needed)
     conn_sq = sqlite3.connect(SQLITE_PATH)
-    cur_sq = conn_sq.cursor()
-    cur_sq.execute(
-        """
-        CREATE TABLE IF NOT EXISTS scans (
-            id TEXT PRIMARY KEY,
-            url TEXT NOT NULL,
-            normalized_url TEXT,
-            safety_score INTEGER,
-            risk_category TEXT,
-            c2_verdict TEXT,
-            data_json TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    try:
+        cur_sq = conn_sq.cursor()
+        cur_sq.execute("PRAGMA table_info(scans)")
+        cols = {row[1] for row in cur_sq.fetchall()}
+        if cols and "data_json" not in cols:
+            cur_sq.execute("DROP TABLE IF EXISTS scans")
+        cur_sq.execute(
+            """
+            CREATE TABLE IF NOT EXISTS scans (
+                id TEXT PRIMARY KEY,
+                url TEXT NOT NULL,
+                normalized_url TEXT,
+                safety_score INTEGER,
+                risk_category TEXT,
+                c2_verdict TEXT,
+                data_json TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
         )
-        """
-    )
-    conn_sq.commit()
-    conn_sq.close()
+        conn_sq.commit()
+    finally:
+        conn_sq.close()
 
 
 def save_scan(scan_result: Dict[str, Any]):
@@ -172,6 +178,7 @@ def save_scan(scan_result: Dict[str, Any]):
             _PG_ACTIVE = False
 
     # Mirror to SQLite
+    conn_sq = None
     try:
         conn_sq = sqlite3.connect(SQLITE_PATH)
         cur_sq = conn_sq.cursor()
@@ -191,9 +198,11 @@ def save_scan(scan_result: Dict[str, Any]):
             ),
         )
         conn_sq.commit()
-        conn_sq.close()
     except Exception as e:
         logger.error(f"SQLite save error: {e}")
+    finally:
+        if conn_sq is not None:
+            conn_sq.close()
 
 
 def list_scans(limit: int = 50) -> List[Dict[str, Any]]:
@@ -234,15 +243,48 @@ def list_scans(limit: int = 50) -> List[Dict[str, Any]]:
 
     # Fallback to SQLite
     conn_sq = sqlite3.connect(SQLITE_PATH)
-    cur_sq = conn_sq.cursor()
-    cur_sq.execute("SELECT data_json FROM scans ORDER BY created_at DESC LIMIT ?", (limit,))
-    rows = cur_sq.fetchall()
-    conn_sq.close()
-    return [json.loads(r[0]) for r in rows if r[0]]
+    try:
+        cur_sq = conn_sq.cursor()
+        cur_sq.execute("SELECT data_json FROM scans ORDER BY created_at DESC LIMIT ?", (limit,))
+        rows = cur_sq.fetchall()
+        return [json.loads(r[0]) for r in rows if r[0]]
+    finally:
+        conn_sq.close()
 
 
 def get_stats() -> Dict[str, Any]:
-    """Calculate dashboard summary directly from database."""
+    """Calculate dashboard summary directly from PostgreSQL or SQLite."""
+    global _PG_ACTIVE
+    if _PG_ACTIVE:
+        try:
+            conn = get_pg_connection()
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        SELECT
+                            COUNT(*) AS total,
+                            COUNT(*) FILTER (WHERE risk_category = 'Safe') AS safe_cnt,
+                            COUNT(*) FILTER (WHERE risk_category = 'Suspicious') AS susp_cnt,
+                            COUNT(*) FILTER (WHERE risk_category = 'Dangerous') AS dang_cnt
+                        FROM website_audits;
+                        """
+                    )
+                    total, safe, suspicious, dangerous = cur.fetchone()
+            finally:
+                conn.close()
+            return {
+                "totalScanned": int(total),
+                "safeCount": int(safe),
+                "suspiciousCount": int(suspicious),
+                "dangerousCount": int(dangerous),
+                "databaseEngine": "PostgreSQL",
+                "isDemoData": total == 0,
+            }
+        except Exception as e:
+            logger.warning(f"PG stats error, falling back to SQLite: {e}")
+            _PG_ACTIVE = False
+
     items = list_scans(limit=1000)
     total = len(items)
     safe = sum(1 for item in items if item.get("riskCategory") == "Safe")
@@ -253,6 +295,6 @@ def get_stats() -> Dict[str, Any]:
         "safeCount": safe,
         "suspiciousCount": suspicious,
         "dangerousCount": dangerous,
-        "databaseEngine": "PostgreSQL (Docker 5432)" if _PG_ACTIVE else "SQLite Fallback",
+        "databaseEngine": "SQLite Fallback",
         "isDemoData": total == 0,
     }

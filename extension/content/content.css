@@ -75,7 +75,7 @@
 .agnishield-subtitle {
   font-size: 11px !important;
   color: #94a3b8 !important;
-  font-mono: monospace !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important;
 }
 
 .agnishield-badge {
@@ -197,21 +197,18 @@
 .agnishield-btn-primary {
   width: 100% !important;
   padding: 12px 18px !important;
-  background: #00f0ff !important;
+  background: #ffffff !important;
   color: #050505 !important;
   font-weight: 700 !important;
   font-size: 13px !important;
   border-radius: 12px !important;
   border: none !important;
   cursor: pointer !important;
-  transition: all 0.2s !important;
-  box-shadow: 0 0 20px rgba(0, 240, 255, 0.4) !important;
+  transition: background-color 0.2s !important;
 }
 
 .agnishield-btn-primary:hover {
-  background: #38bdf8 !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 0 25px rgba(0, 240, 255, 0.6) !important;
+  background: #e2e8f0 !important;
 }
 
 .agnishield-btn-secondary {

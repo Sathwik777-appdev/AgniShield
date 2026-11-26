@@ -7,13 +7,16 @@ Produces structured, deep forensic breakdowns of website issues, C2 risks, and r
 
 import json
 import logging
+import os
 import urllib.request
 from typing import Any, Dict
+from urllib.parse import urlparse
 
 logger = logging.getLogger("agnishield.llm")
 
-OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
-DEFAULT_MODEL = "qwen3:8b"
+OLLAMA_ENABLED = os.getenv("OLLAMA_ENABLED", "false").lower() == "true"
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434/api/generate")
+DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:8b")
 
 
 def generate_fallback_ai_analysis(scan_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -50,10 +53,11 @@ def generate_fallback_ai_analysis(scan_data: Dict[str, Any]) -> Dict[str, Any]:
             "guidance": "Migrate from randomized or auto-generated hostnames to human-readable brand domains with verified WHOIS registration.",
         })
     elif "trycloudflare" in url or "ngrok" in url or "localtunnel" in url:
+        parsed_host = urlparse(url if "://" in url else f"https://{url}").hostname or url
         issues.append({
             "severity": "MEDIUM",
             "component": "Ephemeral Tunnel Hostname",
-            "finding": f"Audited domain operates over an ephemeral proxy tunnel ({url.split('/')[2]}).",
+            "finding": f"Audited domain operates over an ephemeral proxy tunnel ({parsed_host}).",
             "impact": "Threat actors frequently exploit free tunnel services to stage phishing campaigns without owning authentic domain infrastructure.",
         })
         remediations.append({
@@ -123,11 +127,17 @@ def generate_fallback_ai_analysis(scan_data: Dict[str, Any]) -> Dict[str, Any]:
             "guidance": "Enforce HTTP Strict Transport Security (HSTS) with max-age=31536000 and obtain an authenticated certificate via Let's Encrypt or DigiCert.",
         })
 
+    remediation_note = (
+        "Implementing the recommended engineering fixes below will bring host posture into trusted baseline thresholds."
+        if remediations
+        else "All evaluated lexical, transport, and behavioral indicators fall within trusted baseline thresholds; no immediate remediation is required."
+    )
+
     executive_summary = (
-        f"AgniShield AI SOC Analyst evaluated {url}. The domain received a neural safety score of {score}/100 "
-        f"({category.upper()}), exhibiting verdict '{verdict}'. Primary diagnostic signals include {len(issues)} "
-        f"telemetry findings spanning lexical entropy ({entropy} bits) and flow beaconing characteristics. "
-        f"Implementing the recommended remediation items below will restore host safety into trusted baseline thresholds."
+        f"AgniShield SOC Analyst evaluated {url}. The host scored {score}/100 "
+        f"({category.upper()}) with behavioral verdict '{verdict}'. Analysis covered {len(issues)} "
+        f"telemetry signal(s) including lexical entropy ({entropy} bits) and beaconing score ({int(beaconing * 100)}%). "
+        f"{remediation_note}"
     )
 
     return {
@@ -145,7 +155,10 @@ def generate_fallback_ai_analysis(scan_data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def analyze_with_llm(scan_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Attempt local Ollama LLM inference with automated fallback."""
+    """Attempt local Ollama LLM inference when enabled, with deterministic SOC fallback."""
+    if not OLLAMA_ENABLED:
+        return generate_fallback_ai_analysis(scan_data)
+
     url = scan_data.get("url", "")
     score = scan_data.get("safetyScore", 80)
     category = scan_data.get("riskCategory", "Safe")
@@ -181,7 +194,13 @@ def analyze_with_llm(scan_data: Dict[str, Any]) -> Dict[str, Any]:
         res = urllib.request.urlopen(req, timeout=4)
         data = json.loads(res.read().decode())
         parsed = json.loads(data.get("response", "{}"))
-        if "executiveSummary" in parsed and "issues" in parsed:
+        if (
+            isinstance(parsed.get("executiveSummary"), str)
+            and isinstance(parsed.get("issues"), list)
+        ):
+            parsed.setdefault("remediations", [])
+            if not isinstance(parsed["remediations"], list):
+                parsed["remediations"] = []
             parsed["engine"] = f"Local LLM ({DEFAULT_MODEL} via Ollama)"
             parsed["llmGenerated"] = True
             parsed["score"] = score

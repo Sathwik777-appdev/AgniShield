@@ -58,7 +58,7 @@ export function generateAuditPdfReport(scan: ScanResult) {
     ['SSL / TLS Status', scan.httpsEnabled ? 'HTTPS Active' : 'Unencrypted HTTP / Invalid Handshake'],
     ['C2 Behavioral Verdict', scan.c2Verdict || 'Standard Web Traffic'],
     ['MITRE ATT&CK Mapping', scan.mitreAttack || 'None'],
-    ['Evaluation Model', '200-Tree Random Forest Ensemble (92.27% CV Accuracy)'],
+    ['Evaluation Model', `${scan.randomForest?.totalTrees || 200}-Tree Random Forest Ensemble${scan.isMock ? ' (Offline Fallback)' : ''}`],
   ];
 
   autoTable(doc, {

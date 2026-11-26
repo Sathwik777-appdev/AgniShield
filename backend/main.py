@@ -216,9 +216,9 @@ def scan(req: ScanRequest):
     confidence = round(float(probs[pred_idx]) * 100)
 
     tree_votes = {
-        "Safe": round(float(probs[0]) * 100),
-        "Suspicious": round(float(probs[1]) * 100),
-        "Dangerous": round(float(probs[2]) * 100),
+        "Safe": round(float(probs[0]) * N_TREES),
+        "Suspicious": round(float(probs[1]) * N_TREES),
+        "Dangerous": round(float(probs[2]) * N_TREES),
     }
 
     safety_score = max(
@@ -233,6 +233,13 @@ def scan(req: ScanRequest):
         if predicted_class == "Safe":
             predicted_class = "Suspicious"
         safety_score = min(safety_score, 42)
+    elif features["httpsEnabled"] == 1 and not live_net["sslValid"]:
+        if predicted_class == "Safe":
+            predicted_class = "Suspicious"
+        safety_score = min(safety_score, 64)
+
+    if predicted_class == "Dangerous":
+        safety_score = min(safety_score, 38)
 
     if (
         predicted_class == "Dangerous"
@@ -259,27 +266,35 @@ def scan(req: ScanRequest):
     top_signals = []
     if features["beaconingScore"] > 0.65:
         top_signals.append(
-            f"High flow beaconing regularity ({int(features['beaconingScore'] * 100)}%) suggests automated C2 check-ins."
+            f"High structural/flow beaconing score ({int(features['beaconingScore'] * 100)}%) matches automated C2 patterns."
         )
     if features["domainEntropy"] > 3.7:
         top_signals.append(
-            f"Elevated domain Shannon entropy ({features['domainEntropy']}) indicates potential DGA/DNS tunneling."
+            f"Elevated domain Shannon entropy ({features['domainEntropy']} bits) indicates potential DGA/DNS tunneling."
         )
     if features["nxdomainRatio"] > 0.35:
         top_signals.append(
-            f"High NXDOMAIN ratio ({int(features['nxdomainRatio'] * 100)}%) matches DGA behavior."
+            f"Elevated estimated NXDOMAIN indicator ({int(features['nxdomainRatio'] * 100)}%) aligns with DGA behavior."
         )
     if features["outboundByteRatio"] > 3.5:
         top_signals.append(
-            f"Asymmetric outbound-to-inbound byte ratio ({features['outboundByteRatio']}x) indicates possible data exfiltration."
+            f"Asymmetric estimated outbound-to-inbound ratio ({features['outboundByteRatio']}x) indicates elevated exfiltration risk."
         )
+    if features["suspiciousKeyword"] == 1:
+        top_signals.append("Suspicious phishing or C2 keyword detected in URL host or path.")
+    if features["ipOrShortener"] == 1:
+        top_signals.append("Raw IP host or URL shortener detected (commonly abused in phishing/C2 redirects).")
+    if features["httpsEnabled"] == 0:
+        top_signals.append("Unencrypted HTTP transport detected (no TLS encryption).")
+    elif live_net["dnsResolved"] and not live_net["sslValid"]:
+        top_signals.append("Live TLS certificate handshake failed or could not be verified.")
     if not live_net["dnsResolved"]:
         top_signals.append("Live DNS A-record resolution failed for this host.")
     if not top_signals:
-        top_signals.append("Live DNS/TLS & flow telemetry fall within normal baseline thresholds.")
+        top_signals.append("Live DNS/TLS & lexical telemetry fall within normal baseline thresholds.")
 
     top_signals.append(
-        f"scikit-learn Random Forest ({N_TREES} trees): {tree_votes[predicted_class]}% voted {predicted_class} ({confidence}% confidence)."
+        f"scikit-learn Random Forest ({N_TREES} trees): {tree_votes[predicted_class]}/{N_TREES} trees voted {predicted_class} ({confidence}% confidence)."
     )
 
     result = {

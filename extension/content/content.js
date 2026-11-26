@@ -95,11 +95,11 @@
 
     // Event listeners
     document.getElementById("agnishield-leave-btn").addEventListener("click", () => {
-      window.history.back();
-      // If history back does nothing (new tab), go to safe blank or search
-      setTimeout(() => {
-        window.location.href = "https://www.google.com";
-      }, 300);
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = "about:blank";
+      }
     });
 
     document.getElementById("agnishield-proceed-btn").addEventListener("click", () => {

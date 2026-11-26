@@ -110,16 +110,66 @@ def load_parquet_domains(pattern: str, max_samples: int) -> list[str]:
     return all_domains
 
 
+def augment_benign_subdomains(domains: list[str], seed: int = 42) -> list[str]:
+    """Ensure benign websites with standard subdomains (docs., app., en., gemini., etc.) are well-represented."""
+    rng = random.Random(seed)
+    subs = [
+        "app", "docs", "mail", "drive", "api", "cdn", "en", "m",
+        "blog", "shop", "cloud", "portal", "status", "gemini", "dev",
+    ]
+    out = []
+    for i, d in enumerate(domains):
+        if i % 4 == 0:
+            sub = rng.choice(subs)
+            out.append(f"https://{sub}.{d}")
+        else:
+            out.append(f"https://{d}")
+    return out
+
+
+def generate_ip_and_shortener_threats(n: int, seed: int = 42) -> tuple[list[str], list[str]]:
+    """Generate realistic raw-IP C2 beacons (Dangerous) and URL-shortener lures (Suspicious/Dangerous)."""
+    rng = random.Random(seed + 7)
+    shorteners = ["bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "tiny.cc"]
+    lure_paths = [
+        "free-bank-claim", "verify-account", "login-secure", "wallet-confirm",
+        "prize-claim", "signin-update", "paypal-verify", "password-reset",
+    ]
+    c2_paths = ["beacon", "c2/gate", "gate.php", "update/beacon", "c2", "alert/poll"]
+
+    suspicious_urls = []
+    dangerous_urls = []
+    for i in range(n):
+        sh = rng.choice(shorteners)
+        path = rng.choice(lure_paths)
+        if i % 2 == 0:
+            # HTTP + shortener + lure path -> high-risk Dangerous/Suspicious
+            dangerous_urls.append(f"http://{sh}/{path}")
+        else:
+            suspicious_urls.append(f"https://{sh}/{path}")
+
+        ip = f"{rng.randint(11, 223)}.{rng.randint(0, 255)}.{rng.randint(0, 255)}.{rng.randint(1, 254)}"
+        c2p = rng.choice(c2_paths)
+        scheme = "http" if i % 4 != 0 else "https"
+        dangerous_urls.append(f"{scheme}://{ip}/{c2p}")
+
+    return suspicious_urls, dangerous_urls
+
+
 def build_dataset() -> tuple[np.ndarray, np.ndarray]:
     """Build the dataset with 3 classes using unified feature extraction."""
     print("=" * 70)
-    print("STEP 1: Loading domains from DGArchive parquet files")
+    print("STEP 1: Loading domains from Hugging Face DRIFT parquet files")
     print("=" * 70)
 
-    benign_domains = load_parquet_domains("T*_benign.parquet", MAX_BENIGN)
-    dga_domains = load_parquet_domains("T*_dga.parquet", MAX_DGA)
-    suspicious_domains = generate_suspicious_domains(MAX_SUSPICIOUS, seed=RANDOM_STATE)
-    print(f"  Generated {len(suspicious_domains):,} phishing lure domains")
+    raw_benign = load_parquet_domains("T*_benign.parquet", MAX_BENIGN)
+    benign_domains = augment_benign_subdomains(raw_benign, seed=RANDOM_STATE)
+    dga_domains = [f"https://{d}" for d in load_parquet_domains("T*_dga.parquet", MAX_DGA)]
+    suspicious_domains = [f"https://{d}" for d in generate_suspicious_domains(MAX_SUSPICIOUS, seed=RANDOM_STATE)]
+    extra_susp, extra_dang = generate_ip_and_shortener_threats(3000, seed=RANDOM_STATE)
+    suspicious_domains.extend(extra_susp)
+    dga_domains.extend(extra_dang)
+    print(f"  Generated {len(suspicious_domains):,} phishing lure / shortener URLs and {len(extra_dang):,} IP/C2 URLs")
 
     print("\n" + "=" * 70)
     print("STEP 2: Extracting 10 features via unified pipeline")

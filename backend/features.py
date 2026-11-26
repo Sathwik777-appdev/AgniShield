@@ -7,8 +7,8 @@ into a 10-element feature vector. It is used identically during:
   2. Live inference   (telemetry.py -> extract_features())
   3. Retrain endpoint (main.py -> /api/v1/model/train)
 
-Features are extracted purely from the hostname and its Second-Level Domain (SLD)
-without any label leakage.
+Features are extracted from the URL scheme, hostname, Second-Level Domain (SLD),
+and path tokens without any label leakage.
 """
 
 import math
@@ -42,7 +42,6 @@ SHORTENER_DOMAINS = frozenset([
     "is.gd", "buff.ly", "adf.ly", "tiny.cc",
 ])
 
-# Most common English digraphs / bigrams
 COMMON_BIGRAMS = frozenset([
     "th", "he", "in", "er", "an", "re", "on", "at", "en", "nd",
     "ti", "es", "or", "te", "of", "ed", "is", "it", "al", "ar",
@@ -50,9 +49,9 @@ COMMON_BIGRAMS = frozenset([
     "ve", "co", "me", "de", "hi", "ri", "ro", "ic", "ne", "ea",
     "ra", "ce", "li", "ch", "ll", "be", "ma", "si", "om", "ur",
     "ca", "el", "ta", "la", "ns", "ge", "ly", "ei", "us", "pe",
-    "gl", "oo", "og", "go", "az", "am", "fa", "ce", "ok", "gi",
-    "it", "hu", "ub", "wi", "ik", "ki", "yo", "ou", "tu", "ub",
-    "mi", "cr", "so", "ft", "ap", "pl", "ne", "et", "fl", "ix",
+    "gl", "oo", "og", "go", "az", "am", "fa", "ok", "gi",
+    "hu", "ub", "wi", "ik", "ki", "yo", "tu",
+    "mi", "cr", "so", "ft", "ap", "pl", "et", "fl", "ix",
     "tw", "tr", "sh", "ow", "qu", "un", "ex", "mp", "ac", "eb",
     "bo", "tf", "os", "pp",
 ])
@@ -91,82 +90,99 @@ def domain_to_features(domain: str) -> list[float]:
     Convert a domain or URL string into a 10-element feature vector.
     Calculated identically across training and inference.
     """
-    hostname = domain.strip().lower()
-    if "://" in hostname:
-        hostname = hostname.split("://", 1)[1]
-    hostname = hostname.split("/", 1)[0].split("?", 1)[0].split("#", 1)[0]
+    raw_lower = domain.strip().lower()
+    if raw_lower.startswith("http://"):
+        https_enabled = 0
+        without_scheme = raw_lower[7:]
+    elif raw_lower.startswith("https://"):
+        https_enabled = 1
+        without_scheme = raw_lower[8:]
+    elif "://" in raw_lower:
+        https_enabled = 0
+        without_scheme = raw_lower.split("://", 1)[1]
+    else:
+        https_enabled = 1
+        without_scheme = raw_lower
+
+    # Keep host+path (strip #fragment) for keyword token scanning
+    url_for_keywords = without_scheme.split("#", 1)[0]
+
+    # Isolate clean hostname (strip path, query, port, leading www.)
+    hostname = without_scheme.split("/", 1)[0].split("?", 1)[0].split("#", 1)[0]
+    hostname = hostname.split(":", 1)[0]
     if hostname.startswith("www."):
         hostname = hostname[4:]
 
-    parts = hostname.split(".")
-    sld = get_sld(hostname)
-
-    # 1. domainEntropy: Shannon entropy of the SLD
-    entropy = shannon_entropy(sld)
-
-    # 2. subdomainCount: Count of subdomains preceding SLD and TLD
-    subdomain_count = max(0, len(parts) - 2)
-
-    # 3. digitRatio: Fraction of digits in the SLD
-    digits = sum(ch.isdigit() for ch in sld)
-    digit_ratio = round(digits / max(1, len(sld)), 3)
-
-    # 4. httpsEnabled: Default 1 (overridden with real value at inference time)
-    https_enabled = 1
-
-    # 5. suspiciousKeyword: Word-token boundary check for phishing/C2 keywords
-    tokens = re.split(r"[-._0-9]+", hostname)
-    suspicious_keyword = 1 if any(t in SUSPICIOUS_KEYWORDS for t in tokens if t) else 0
-
-    # 6. ipOrShortener: Exact host check for IP address or URL shorteners
     is_ip = bool(re.match(r"^\d{1,3}(\.\d{1,3}){3}$", hostname))
     is_short = any(hostname == s or hostname.endswith("." + s) for s in SHORTENER_DOMAINS)
     ip_or_shortener = 1 if (is_ip or is_short) else 0
 
-    # 7. beaconingScore: SLD structural randomness (bigrams, consonants, vowels, alternation)
-    alpha = [ch for ch in sld if ch.isalpha()]
-    vowels = sum(1 for ch in alpha if ch in VOWELS)
-    vowel_ratio = vowels / max(1, len(alpha))
-    vowel_shortage = max(0.0, 0.38 - vowel_ratio) / 0.38
+    parts = hostname.split(".")
+    sld = hostname if is_ip else get_sld(hostname)
 
-    if len(alpha) >= 2:
-        bgs = [alpha[i] + alpha[i + 1] for i in range(len(alpha) - 1)]
-        uncommon = sum(1 for bg in bgs if bg not in COMMON_BIGRAMS)
-        bigram_rarity = uncommon / len(bgs)
+    # 1. domainEntropy: Shannon entropy of the SLD (or full IP for raw IPs)
+    entropy = shannon_entropy(sld)
+
+    # 2. subdomainCount: Subdomains preceding SLD+TLD (0 for IPv4 addresses)
+    subdomain_count = 0 if is_ip else max(0, len(parts) - 2)
+
+    # 3. digitRatio: Fraction of digits in the SLD / IP
+    digits = sum(ch.isdigit() for ch in sld)
+    digit_ratio = round(digits / max(1, len(sld)), 3)
+
+    # 5. suspiciousKeyword: Word-token check across hostname AND URL path/query
+    tokens = re.split(r"[^a-z0-9]+", url_for_keywords)
+    suspicious_keyword = 1 if any(t in SUSPICIOUS_KEYWORDS for t in tokens if t) else 0
+
+    # 7. beaconingScore: Structural randomness of alphabetic characters in SLD
+    if is_ip:
+        beaconing_score = 0.78 if suspicious_keyword or https_enabled == 0 else 0.55
     else:
-        bigram_rarity = 0.5
+        alpha = [ch for ch in sld if ch.isalpha()]
+        vowels = sum(1 for ch in alpha if ch in VOWELS)
+        vowel_ratio = vowels / max(1, len(alpha))
+        vowel_shortage = max(0.0, 0.38 - vowel_ratio) / 0.38
 
-    max_c, cur = 0, 0
-    for ch in alpha:
-        if ch in CONSONANTS:
-            cur += 1
-            max_c = max(max_c, cur)
+        if len(alpha) >= 2:
+            bgs = [alpha[i] + alpha[i + 1] for i in range(len(alpha) - 1)]
+            uncommon = sum(1 for bg in bgs if bg not in COMMON_BIGRAMS)
+            bigram_rarity = uncommon / len(bgs)
         else:
-            cur = 0
-    consonant_cluster = max(0.0, (max_c - 2) / max(1, len(alpha) - 2)) if len(alpha) > 2 else 0.0
+            bigram_rarity = 0.5
 
-    trans = sum(1 for i in range(len(alpha) - 1) if (alpha[i] in VOWELS) != (alpha[i + 1] in VOWELS))
-    alt = trans / max(1, len(alpha) - 1) if len(alpha) >= 2 else 0.5
-    alt_deficiency = max(0.0, 1.0 - alt)
+        max_c, cur = 0, 0
+        for ch in alpha:
+            if ch in CONSONANTS:
+                cur += 1
+                max_c = max(max_c, cur)
+            else:
+                cur = 0
+        consonant_cluster = max(0.0, (max_c - 2) / max(1, len(alpha) - 2)) if len(alpha) > 2 else 0.0
 
-    beaconing_score = round(min(0.98,
-        0.35 * bigram_rarity +
-        0.35 * consonant_cluster +
-        0.15 * vowel_shortage +
-        0.15 * alt_deficiency
-    ), 3)
+        trans = sum(1 for i in range(len(alpha) - 1) if (alpha[i] in VOWELS) != (alpha[i + 1] in VOWELS))
+        alt = trans / max(1, len(alpha) - 1) if len(alpha) >= 2 else 0.5
+        alt_deficiency = max(0.0, 1.0 - alt)
 
-    # 8. outboundByteRatio: Scaled by domain length factor and beaconing regularity
+        beaconing_score = round(min(0.98,
+            0.35 * bigram_rarity +
+            0.35 * consonant_cluster +
+            0.15 * vowel_shortage +
+            0.15 * alt_deficiency
+        ), 3)
+
+    # 8. outboundByteRatio: Penalize deep subdomain tunneling (>=2), long random SLDs, high digits
     length_factor = min(1.0, len(sld) / 20)
+    excess_subdomains = max(0, subdomain_count - 1)
     outbound_byte_ratio = round(
-        0.6 + length_factor * 2.5 * beaconing_score + subdomain_count * 0.5 + digit_ratio * 2.0, 2
+        0.6 + length_factor * 2.5 * beaconing_score + excess_subdomains * 0.5 + digit_ratio * 2.0,
+        2,
     )
 
     # 9. dnsQueryRate: Estimated query rate in req/min
     dns_query_rate = round(5 + entropy * 3.5 + beaconing_score * 35 + digit_ratio * 15, 1)
 
-    # 10. nxdomainRatio: NXDOMAIN error ratio (unusual TLDs and high entropy correlate with DGA)
-    tld = parts[-1] if parts else ""
+    # 10. nxdomainRatio: NXDOMAIN error ratio
+    tld = "" if is_ip else (parts[-1] if parts else "")
     unusual_tld = 0.20 if tld in UNUSUAL_TLDS else 0.0
     nxdomain_ratio = round(
         min(0.95, 0.02 + unusual_tld + beaconing_score * 0.45 + (0.1 if entropy > 3.2 else 0.0)), 3
