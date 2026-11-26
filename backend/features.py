@@ -95,6 +95,8 @@ def domain_to_features(domain: str) -> list[float]:
     if "://" in hostname:
         hostname = hostname.split("://", 1)[1]
     hostname = hostname.split("/", 1)[0].split("?", 1)[0].split("#", 1)[0]
+    if hostname.startswith("www."):
+        hostname = hostname[4:]
 
     parts = hostname.split(".")
     sld = get_sld(hostname)

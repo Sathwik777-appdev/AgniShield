@@ -88,8 +88,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
     updateBadge(tabId, scanResult.riskCategory, scanResult.safetyScore);
 
-    // If Dangerous or Suspicious, alert the content script
-    if (scanResult.riskCategory === "Dangerous" || scanResult.riskCategory === "Suspicious") {
+    // Only show fullscreen blocking warning for Dangerous sites; Suspicious gets WARN badge
+    if (scanResult.riskCategory === "Dangerous") {
       chrome.tabs.sendMessage(tabId, {
         type: "AGNISHIELD_THREAT_DETECTED",
         scan: scanResult,

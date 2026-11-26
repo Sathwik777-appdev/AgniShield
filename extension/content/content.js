@@ -118,7 +118,7 @@
 
   // Also query status on document load
   chrome.runtime.sendMessage({ type: "GET_TAB_THREAT_STATUS", url: window.location.href }, (res) => {
-    if (res && res.scan && (res.scan.riskCategory === "Dangerous" || res.scan.riskCategory === "Suspicious")) {
+    if (res && res.scan && res.scan.riskCategory === "Dangerous") {
       renderThreatWarning(res.scan);
     }
   });
