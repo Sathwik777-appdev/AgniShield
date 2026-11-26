@@ -6,24 +6,37 @@ interface ThreatTopologyGraphProps {
   onSelectScan?: (scan: ScanResult) => void;
 }
 
-interface Node {
+interface GraphNode {
   id: string;
   label: string;
+  fullDomain: string;
   type: 'hub' | 'safe' | 'suspicious' | 'dangerous';
   score: number;
+  count: number;
   x: number;
   y: number;
+  homeX: number;
+  homeY: number;
   vx: number;
   vy: number;
   radius: number;
   scanData?: ScanResult;
 }
 
-interface Link {
-  source: string;
-  target: string;
+interface GraphLink {
+  targetId: string;
   status: 'safe' | 'suspicious' | 'dangerous';
   pulse: number;
+  speed: number;
+  curveOffset: number;
+}
+
+function extractDomain(rawUrl: string): string {
+  try {
+    return new URL(rawUrl).hostname.toLowerCase() || rawUrl;
+  } catch {
+    return rawUrl.replace(/^https?:\/\//i, '').split('/')[0] || rawUrl;
+  }
 }
 
 export const ThreatTopologyGraph: React.FC<ThreatTopologyGraphProps> = ({
@@ -31,8 +44,14 @@ export const ThreatTopologyGraph: React.FC<ThreatTopologyGraphProps> = ({
   onSelectScan,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [hoveredNode, setHoveredNode] = useState<Node | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'safe' | 'suspicious' | 'dangerous'>('all');
+  const hoveredNodeRef = useRef<GraphNode | null>(null);
+  const onSelectScanRef = useRef(onSelectScan);
+  onSelectScanRef.current = onSelectScan;
+
+  const [hoveredInfo, setHoveredInfo] = useState<GraphNode | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<
+    'all' | 'safe' | 'suspicious' | 'dangerous'
+  >('all');
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -40,275 +59,373 @@ export const ThreatTopologyGraph: React.FC<ThreatTopologyGraphProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let animId: number;
-    let width = (canvas.width = canvas.parentElement?.clientWidth || 700);
-    let height = (canvas.height = 420);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const height = 430;
+    let width = canvas.parentElement?.clientWidth || 760;
 
-    const handleResize = () => {
+    const setupSize = () => {
       if (!canvas || !canvas.parentElement) return;
-      width = canvas.width = canvas.parentElement.clientWidth;
-      height = canvas.height = 420;
+      width = canvas.parentElement.clientWidth;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
-    window.addEventListener('resize', handleResize);
+    setupSize();
 
-    // Build Nodes & Links
-    const nodes: Node[] = [
+    // Deduplicate scans by domain so repeated scans don't clutter the topology
+    const sourceScans: ScanResult[] =
+      recentScans.length > 0
+        ? recentScans
+        : ([
+            { id: 'demo-1', url: 'https://github.com', safetyScore: 98, riskCategory: 'Safe', c2Verdict: 'No C2 Activity' },
+            { id: 'demo-2', url: 'https://google.com', safetyScore: 96, riskCategory: 'Safe', c2Verdict: 'No C2 Activity' },
+            { id: 'demo-3', url: 'https://cloudflare.com', safetyScore: 94, riskCategory: 'Safe', c2Verdict: 'No C2 Activity' },
+            { id: 'demo-4', url: 'https://secure-login-verify.example.com', safetyScore: 44, riskCategory: 'Suspicious', c2Verdict: 'Potential C2 Beaconing' },
+            { id: 'demo-5', url: 'http://bit.ly/free-bank-claim', safetyScore: 26, riskCategory: 'Dangerous', c2Verdict: 'High-Confidence C2 / DGA' },
+            { id: 'demo-6', url: 'https://x9k2m7q8z4v1p3w6.xyz', safetyScore: 19, riskCategory: 'Dangerous', c2Verdict: 'High-Confidence C2 / DGA' },
+          ] as unknown as ScanResult[]);
+
+    const deduped = new Map<string, { scan: ScanResult; count: number }>();
+    for (const scan of sourceScans) {
+      const domain = extractDomain(scan.url);
+      const existing = deduped.get(domain);
+      if (!existing) {
+        deduped.set(domain, { scan, count: 1 });
+      } else {
+        existing.count += 1;
+      }
+    }
+
+    const uniqueEntries = Array.from(deduped.entries()).slice(0, 14);
+    const cx = width / 2;
+    const cy = height / 2;
+
+    const nodes: GraphNode[] = [
       {
         id: 'AGNISHIELD_CORE',
-        label: 'AgniShield Core',
+        label: 'AgniShield Engine',
+        fullDomain: '200-Tree RF Core',
         type: 'hub',
         score: 100,
-        x: width / 2,
-        y: height / 2,
+        count: uniqueEntries.length,
+        x: cx,
+        y: cy,
+        homeX: cx,
+        homeY: cy,
         vx: 0,
         vy: 0,
-        radius: 24,
+        radius: 22,
       },
     ];
 
-    // Build scan nodes or fallback rich network nodes
-    const scansToDisplay = recentScans.length > 0 ? recentScans.slice(0, 10) : [
-      { id: '1', url: 'https://github.com', safetyScore: 98, riskCategory: 'Safe' },
-      { id: '2', url: 'https://google.com', safetyScore: 96, riskCategory: 'Safe' },
-      { id: '3', url: 'https://cloudflare.com', safetyScore: 94, riskCategory: 'Safe' },
-      { id: '4', url: 'http://bit.ly/free-bank-claim', safetyScore: 28, riskCategory: 'Dangerous' },
-      { id: '5', url: 'https://secure-login-verify.example.com', safetyScore: 42, riskCategory: 'Suspicious' },
-      { id: '6', url: 'https://aws.amazon.com', safetyScore: 92, riskCategory: 'Safe' },
-      { id: '7', url: 'http://185.220.101.5/beacon', safetyScore: 12, riskCategory: 'Dangerous' },
-    ] as unknown as ScanResult[];
+    // Arrange nodes in clean elliptical tiers by risk level so labels never collide
+    const tierRadii: Record<'dangerous' | 'suspicious' | 'safe', number> = {
+      dangerous: 0.48,
+      suspicious: 0.72,
+      safe: 0.92,
+    };
 
-    const count = scansToDisplay.length;
-    scansToDisplay.forEach((scan, i) => {
-      const angle = (i / count) * Math.PI * 2;
-      const dist = 125 + (i % 2) * 45;
-      const category = (scan.riskCategory || 'Safe').toLowerCase() as 'safe' | 'suspicious' | 'dangerous';
+    const count = uniqueEntries.length;
+    uniqueEntries.forEach(([domain, { scan, count: scanCount }], i) => {
+      const category = (scan.riskCategory || 'Safe').toLowerCase() as
+        | 'safe'
+        | 'suspicious'
+        | 'dangerous';
+      const angle = (i / Math.max(1, count)) * Math.PI * 2 - Math.PI / 2;
+      const tierScale = tierRadii[category] ?? 0.85;
+      const rx = Math.min(width * 0.38, 300) * tierScale;
+      const ry = Math.min(height * 0.36, 155) * tierScale;
 
-      try {
-        const domain = new URL(scan.url).hostname || scan.url;
-        nodes.push({
-          id: scan.id || `node-${i}`,
-          label: domain.length > 22 ? domain.slice(0, 20) + '…' : domain,
-          type: category,
-          score: scan.safetyScore ?? 85,
-          x: width / 2 + Math.cos(angle) * dist,
-          y: height / 2 + Math.sin(angle) * dist,
-          vx: (Math.random() - 0.5) * 0.4,
-          vy: (Math.random() - 0.5) * 0.4,
-          radius: category === 'dangerous' ? 15 : category === 'suspicious' ? 13 : 11,
-          scanData: scan,
-        });
-      } catch {
-        nodes.push({
-          id: scan.id || `node-${i}`,
-          label: scan.url.slice(0, 18),
-          type: category,
-          score: scan.safetyScore ?? 80,
-          x: width / 2 + Math.cos(angle) * dist,
-          y: height / 2 + Math.sin(angle) * dist,
-          vx: (Math.random() - 0.5) * 0.4,
-          vy: (Math.random() - 0.5) * 0.4,
-          radius: 12,
-          scanData: scan,
-        });
-      }
+      const hx = cx + Math.cos(angle) * rx;
+      const hy = cy + Math.sin(angle) * ry;
+
+      nodes.push({
+        id: scan.id || `node-${i}`,
+        label: domain.length > 22 ? `${domain.slice(0, 19)}…` : domain,
+        fullDomain: domain,
+        type: category,
+        score: scan.safetyScore ?? 85,
+        count: scanCount,
+        x: hx,
+        y: hy,
+        homeX: hx,
+        homeY: hy,
+        vx: 0,
+        vy: 0,
+        radius: category === 'dangerous' ? 14 : category === 'suspicious' ? 12 : 10,
+        scanData: scan,
+      });
     });
 
-    const links: Link[] = nodes
-      .filter((n) => n.id !== 'AGNISHIELD_CORE')
-      .map((n) => ({
-        source: 'AGNISHIELD_CORE',
-        target: n.id,
+    const links: GraphLink[] = nodes
+      .filter((n) => n.type !== 'hub')
+      .map((n, idx) => ({
+        targetId: n.id,
         status: n.type as 'safe' | 'suspicious' | 'dangerous',
-        pulse: Math.random(),
+        pulse: (idx * 0.19) % 1,
+        speed: n.type === 'dangerous' ? 0.014 : n.type === 'suspicious' ? 0.01 : 0.007,
+        curveOffset: (idx % 2 === 0 ? 1 : -1) * 22,
       }));
 
-    // Mouse interactions
-    let mouseX = -1000;
-    let mouseY = -1000;
+    const handleResize = () => {
+      setupSize();
+      nodes[0].homeX = width / 2;
+      nodes[0].homeY = height / 2;
+    };
+    window.addEventListener('resize', handleResize);
 
-    const handleMouseMove = (e: MouseEvent) => {
+    let draggingNode: GraphNode | null = null;
+    let dragMoved = false;
+
+    const getPos = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
-      mouseX = e.clientX - rect.left;
-      mouseY = e.clientY - rect.top;
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    };
 
-      let found: Node | null = null;
-      for (const node of nodes) {
-        const dx = node.x - mouseX;
-        const dy = node.y - mouseY;
-        if (Math.sqrt(dx * dx + dy * dy) < node.radius + 6) {
-          found = node;
-          break;
+    const findNodeAt = (mx: number, my: number): GraphNode | null => {
+      for (let i = nodes.length - 1; i >= 0; i--) {
+        const node = nodes[i];
+        if (
+          node.type !== 'hub' &&
+          selectedCategory !== 'all' &&
+          node.type !== selectedCategory
+        ) {
+          continue;
+        }
+        const dx = node.x - mx;
+        const dy = node.y - my;
+        if (Math.hypot(dx, dy) <= node.radius + 8) {
+          return node;
         }
       }
-      setHoveredNode(found);
+      return null;
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      const { x, y } = getPos(e);
+      const hit = findNodeAt(x, y);
+      if (hit && hit.type !== 'hub') {
+        draggingNode = hit;
+        dragMoved = false;
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const { x, y } = getPos(e);
+      if (draggingNode) {
+        dragMoved = true;
+        draggingNode.x = Math.max(40, Math.min(width - 40, x));
+        draggingNode.y = Math.max(36, Math.min(height - 42, y));
+        draggingNode.homeX = draggingNode.x;
+        draggingNode.homeY = draggingNode.y;
+        return;
+      }
+
+      const found = findNodeAt(x, y);
+      if (hoveredNodeRef.current?.id !== found?.id) {
+        hoveredNodeRef.current = found;
+        setHoveredInfo(found ? { ...found } : null);
+      }
       canvas.style.cursor = found && found.type !== 'hub' ? 'pointer' : 'default';
     };
 
-    const handleClick = () => {
-      if (hoveredNode && hoveredNode.scanData && onSelectScan) {
-        onSelectScan(hoveredNode.scanData);
+    const handleMouseUp = () => {
+      if (draggingNode && !dragMoved && draggingNode.scanData && onSelectScanRef.current) {
+        onSelectScanRef.current(draggingNode.scanData);
+      } else if (!draggingNode && hoveredNodeRef.current?.scanData && onSelectScanRef.current) {
+        onSelectScanRef.current(hoveredNodeRef.current.scanData);
       }
+      draggingNode = null;
     };
 
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('click', handleClick);
+    const handleMouseLeave = () => {
+      draggingNode = null;
+      hoveredNodeRef.current = null;
+      setHoveredInfo(null);
+    };
 
-    // Animation Loop
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
+
+    const COLORS = {
+      hub: '#e2e8f0',
+      safe: '#10b981',
+      suspicious: '#f59e0b',
+      dangerous: '#f43f5e',
+    };
+
     let time = 0;
+    let animId: number;
+
     const render = () => {
-      time += 0.02;
+      time += 0.015;
       ctx.clearRect(0, 0, width, height);
 
-      // Keep Hub Centered
-      nodes[0].x = width / 2;
-      nodes[0].y = height / 2;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      nodes[0].x = centerX;
+      nodes[0].y = centerY;
 
-      // Particle physics & floating drift
+      // Subtle spring toward home + gentle node-node repulsion to prevent label overlap
       for (let i = 1; i < nodes.length; i++) {
-        const node = nodes[i];
-        node.x += Math.sin(time + i) * 0.35;
-        node.y += Math.cos(time + i * 1.5) * 0.35;
+        const n = nodes[i];
+        if (draggingNode?.id === n.id) continue;
 
-        // Keep inside bounds
-        node.x = Math.max(30, Math.min(width - 30, node.x));
-        node.y = Math.max(30, Math.min(height - 30, node.y));
+        const targetX = n.homeX + Math.sin(time + i * 1.1) * 4;
+        const targetY = n.homeY + Math.cos(time + i * 1.3) * 4;
+        n.vx += (targetX - n.x) * 0.04;
+        n.vy += (targetY - n.y) * 0.04;
+
+        for (let j = 1; j < nodes.length; j++) {
+          if (i === j) continue;
+          const other = nodes[j];
+          const dx = n.x - other.x;
+          const dy = n.y - other.y;
+          const dist = Math.hypot(dx, dy) || 1;
+          const minDist = 78;
+          if (dist < minDist) {
+            const push = ((minDist - dist) / minDist) * 0.65;
+            n.vx += (dx / dist) * push;
+            n.vy += (dy / dist) * push;
+          }
+        }
+
+        n.vx *= 0.82;
+        n.vy *= 0.82;
+        n.x = Math.max(48, Math.min(width - 48, n.x + n.vx));
+        n.y = Math.max(36, Math.min(height - 44, n.y + n.vy));
       }
 
-      // Draw Grid / Radar circles
+      // Draw subtle concentric elliptical telemetry rings
       ctx.save();
-      ctx.strokeStyle = 'rgba(0, 240, 255, 0.05)';
       ctx.lineWidth = 1;
-      [80, 140, 200].forEach((r) => {
+      [0.48, 0.72, 0.92].forEach((scale, idx) => {
+        const rx = Math.min(width * 0.38, 300) * scale;
+        const ry = Math.min(height * 0.36, 155) * scale;
+        ctx.strokeStyle =
+          idx === 0
+            ? 'rgba(244, 63, 94, 0.12)'
+            : idx === 1
+            ? 'rgba(245, 158, 11, 0.10)'
+            : 'rgba(148, 163, 184, 0.10)';
+        ctx.setLineDash([3, 5]);
         ctx.beginPath();
-        ctx.arc(width / 2, height / 2, r, 0, Math.PI * 2);
+        ctx.ellipse(centerX, centerY, rx, ry, 0, 0, Math.PI * 2);
         ctx.stroke();
       });
-
-      // Rotating radar beam line
-      ctx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
-      ctx.beginPath();
-      ctx.moveTo(width / 2, height / 2);
-      ctx.lineTo(
-        width / 2 + Math.cos(time * 0.8) * 210,
-        height / 2 + Math.sin(time * 0.8) * 210
-      );
-      ctx.stroke();
+      ctx.setLineDash([]);
       ctx.restore();
 
-      // Draw Links
-      links.forEach((link) => {
-        const targetNode = nodes.find((n) => n.id === link.target);
-        if (!targetNode) return;
+      // Draw curved quadratic Bezier links & animated telemetry pulses
+      for (const link of links) {
+        const target = nodes.find((n) => n.id === link.targetId);
+        if (!target) continue;
+        if (selectedCategory !== 'all' && target.type !== selectedCategory) continue;
 
-        if (selectedCategory !== 'all' && targetNode.type !== selectedCategory) {
-          return;
-        }
-
-        const isThreat = targetNode.type === 'dangerous';
-        const isSuspicious = targetNode.type === 'suspicious';
-        const strokeColor = isThreat
-          ? 'rgba(244, 63, 94, 0.45)'
-          : isSuspicious
-          ? 'rgba(245, 158, 11, 0.4)'
-          : 'rgba(16, 185, 129, 0.3)';
+        const isHovered = hoveredNodeRef.current?.id === target.id;
+        const mx = (centerX + target.x) / 2;
+        const my = (centerY + target.y) / 2;
+        const dx = target.x - centerX;
+        const dy = target.y - centerY;
+        const len = Math.hypot(dx, dy) || 1;
+        const cpx = mx + (-dy / len) * link.curveOffset;
+        const cpy = my + (dx / len) * link.curveOffset;
 
         ctx.beginPath();
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = isThreat ? 2 : 1;
-        if (isThreat) {
-          ctx.setLineDash([4, 4]);
-        } else {
-          ctx.setLineDash([]);
-        }
-        ctx.moveTo(width / 2, height / 2);
-        ctx.lineTo(targetNode.x, targetNode.y);
+        ctx.moveTo(centerX, centerY);
+        ctx.quadraticCurveTo(cpx, cpy, target.x, target.y);
+        ctx.strokeStyle =
+          target.type === 'dangerous'
+            ? isHovered
+              ? 'rgba(244, 63, 94, 0.85)'
+              : 'rgba(244, 63, 94, 0.35)'
+            : target.type === 'suspicious'
+            ? isHovered
+              ? 'rgba(245, 158, 11, 0.85)'
+              : 'rgba(245, 158, 11, 0.32)'
+            : isHovered
+            ? 'rgba(16, 185, 129, 0.75)'
+            : 'rgba(16, 185, 129, 0.24)';
+        ctx.lineWidth = isHovered ? 2 : 1.1;
         ctx.stroke();
-        ctx.setLineDash([]);
 
-        // Animated packet signal along the line
-        link.pulse = (link.pulse + 0.015) % 1;
-        const px = width / 2 + (targetNode.x - width / 2) * link.pulse;
-        const py = height / 2 + (targetNode.y - height / 2) * link.pulse;
+        // Point along quadratic Bezier at t = link.pulse
+        link.pulse = (link.pulse + link.speed) % 1;
+        const t = link.pulse;
+        const omt = 1 - t;
+        const px = omt * omt * centerX + 2 * omt * t * cpx + t * t * target.x;
+        const py = omt * omt * centerY + 2 * omt * t * cpy + t * t * target.y;
 
         ctx.beginPath();
-        ctx.arc(px, py, isThreat ? 3 : 2, 0, Math.PI * 2);
-        ctx.fillStyle = isThreat ? '#f43f5e' : isSuspicious ? '#fbbf24' : '#34d399';
-        ctx.shadowColor = ctx.fillStyle;
-        ctx.shadowBlur = 8;
+        ctx.arc(px, py, target.type === 'dangerous' ? 2.8 : 2, 0, Math.PI * 2);
+        ctx.fillStyle = COLORS[target.type];
         ctx.fill();
-        ctx.shadowBlur = 0;
-      });
+      }
 
       // Draw Nodes
-      nodes.forEach((node) => {
-        if (node.type !== 'hub' && selectedCategory !== 'all' && node.type !== selectedCategory) {
-          return;
+      for (const node of nodes) {
+        if (
+          node.type !== 'hub' &&
+          selectedCategory !== 'all' &&
+          node.type !== selectedCategory
+        ) {
+          continue;
         }
 
         const isHub = node.type === 'hub';
-        const isDangerous = node.type === 'dangerous';
-        const isSuspicious = node.type === 'suspicious';
-        const isHovered = hoveredNode?.id === node.id;
+        const isHovered = hoveredNodeRef.current?.id === node.id;
+        const baseColor = COLORS[node.type];
 
-        // Outer glow
+        // Soft halo
         ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius + (isHovered ? 6 : 2), 0, Math.PI * 2);
-        if (isHub) {
-          ctx.fillStyle = 'rgba(0, 240, 255, 0.15)';
-        } else if (isDangerous) {
-          ctx.fillStyle = 'rgba(244, 63, 94, 0.2)';
-        } else if (isSuspicious) {
-          ctx.fillStyle = 'rgba(245, 158, 11, 0.2)';
-        } else {
-          ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
-        }
+        ctx.arc(node.x, node.y, node.radius + (isHovered ? 7 : 4), 0, Math.PI * 2);
+        ctx.fillStyle = isHub
+          ? 'rgba(255, 255, 255, 0.08)'
+          : node.type === 'dangerous'
+          ? 'rgba(244, 63, 94, 0.16)'
+          : node.type === 'suspicious'
+          ? 'rgba(245, 158, 11, 0.15)'
+          : 'rgba(16, 185, 129, 0.13)';
         ctx.fill();
 
-        // Node Body
+        // Node fill
         ctx.beginPath();
         ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
         if (isHub) {
-          const grad = ctx.createRadialGradient(node.x, node.y, 2, node.x, node.y, node.radius);
-          grad.addColorStop(0, '#00f0ff');
-          grad.addColorStop(1, '#0284c7');
-          ctx.fillStyle = grad;
-          ctx.shadowColor = '#00f0ff';
-          ctx.shadowBlur = 15;
-        } else if (isDangerous) {
-          ctx.fillStyle = '#f43f5e';
-          ctx.shadowColor = '#f43f5e';
-          ctx.shadowBlur = 12;
-        } else if (isSuspicious) {
-          ctx.fillStyle = '#f59e0b';
-          ctx.shadowColor = '#f59e0b';
-          ctx.shadowBlur = 10;
+          ctx.fillStyle = '#0f172a';
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#e2e8f0';
+          ctx.stroke();
         } else {
-          ctx.fillStyle = '#10b981';
-          ctx.shadowColor = '#10b981';
-          ctx.shadowBlur = 8;
+          ctx.fillStyle = baseColor;
+          ctx.fill();
+          ctx.lineWidth = isHovered ? 2.2 : 1.2;
+          ctx.strokeStyle = isHovered ? '#ffffff' : 'rgba(255, 255, 255, 0.7)';
+          ctx.stroke();
         }
-        ctx.fill();
-        ctx.shadowBlur = 0;
 
-        // Border ring
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = isHovered ? 2.5 : 1.2;
-        ctx.stroke();
-
-        // Label
-        ctx.fillStyle = '#f1f5f9';
-        ctx.font = isHub ? 'bold 11px sans-serif' : '10px sans-serif';
+        // Hub inner shield glyph / score inside node
+        ctx.fillStyle = isHub ? '#f8fafc' : '#050505';
+        ctx.font = isHub ? 'bold 10px ui-monospace, monospace' : 'bold 9px ui-monospace, monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(node.label, node.x, node.y + node.radius + 14);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(isHub ? 'RF' : String(node.score), node.x, node.y + 0.5);
 
-        if (!isHub) {
-          ctx.fillStyle = isDangerous ? '#fca5a5' : isSuspicious ? '#fde68a' : '#a7f3d0';
-          ctx.font = '9px monospace';
-          ctx.fillText(`Score ${node.score}`, node.x, node.y + node.radius + 25);
-        }
-      });
+        // Domain label below node
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = isHovered ? '#ffffff' : '#cbd5e1';
+        ctx.font = isHub
+          ? '600 11px system-ui, -apple-system, sans-serif'
+          : '500 10.5px system-ui, -apple-system, sans-serif';
+        const labelText =
+          !isHub && node.count > 1 ? `${node.label} ×${node.count}` : node.label;
+        ctx.fillText(labelText, node.x, node.y + node.radius + 14);
+      }
 
       animId = requestAnimationFrame(render);
     };
@@ -318,19 +435,21 @@ export const ThreatTopologyGraph: React.FC<ThreatTopologyGraphProps> = ({
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', handleResize);
+      canvas.removeEventListener('mousedown', handleMouseDown);
       canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('click', handleClick);
+      canvas.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
     };
-  }, [recentScans, selectedCategory, onSelectScan, hoveredNode]);
+  }, [recentScans, selectedCategory]);
 
   return (
-    <div className="relative w-full rounded-2xl bg-slate-950/80 border border-slate-800/80 overflow-hidden shadow-2xl p-4">
+    <div className="relative w-full rounded-2xl bg-[#070a12]/90 border border-white/10 overflow-hidden shadow-xl p-4">
       {/* Top Filter Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-800/60">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2.5 border-b border-white/[0.07]">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-          <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono">
-            Interactive C2 & Threat Topology Graph
+          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 font-mono">
+            C2 &amp; Domain Threat Topology
           </h4>
         </div>
 
@@ -340,16 +459,16 @@ export const ThreatTopologyGraph: React.FC<ThreatTopologyGraphProps> = ({
             <button
               key={filter}
               onClick={() => setSelectedCategory(filter)}
-              className={`px-2.5 py-1 rounded-lg capitalize transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg capitalize transition-colors cursor-pointer ${
                 selectedCategory === filter
                   ? filter === 'dangerous'
-                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-[0_0_10px_rgba(244,63,94,0.3)]'
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
                     : filter === 'suspicious'
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                     : filter === 'safe'
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                    : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(0,240,255,0.3)]'
-                  : 'text-slate-400 hover:text-white bg-slate-900/60 border border-transparent'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'bg-white/15 text-white border border-white/25'
+                  : 'text-slate-400 hover:text-slate-200 border border-transparent'
               }`}
             >
               {filter}
@@ -358,60 +477,59 @@ export const ThreatTopologyGraph: React.FC<ThreatTopologyGraphProps> = ({
         </div>
       </div>
 
-      {/* Canvas */}
-      <div className="relative w-full h-[420px]">
-        <canvas ref={canvasRef} className="w-full h-full block" />
+      {/* Interactive Canvas */}
+      <div className="relative w-full h-[430px]">
+        <canvas ref={canvasRef} className="block w-full h-full" />
 
-        {/* Floating Tooltip if Hovered */}
-        {hoveredNode && hoveredNode.type !== 'hub' && (
-          <div
-            className="absolute z-20 pointer-events-none p-3 rounded-xl bg-slate-900/95 border border-cyan-500/40 backdrop-blur-md shadow-2xl text-left"
-            style={{
-              left: Math.min(Math.max(10, hoveredNode.x - 70), 450),
-              top: Math.max(10, hoveredNode.y - 85),
-            }}
-          >
-            <p className="text-xs font-bold text-white truncate max-w-[200px]">
-              {hoveredNode.scanData?.url || hoveredNode.label}
-            </p>
-            <div className="flex items-center gap-2 mt-1">
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase ${
-                  hoveredNode.type === 'dangerous'
-                    ? 'bg-rose-500/20 text-rose-400'
-                    : hoveredNode.type === 'suspicious'
-                    ? 'bg-amber-500/20 text-amber-400'
-                    : 'bg-emerald-500/20 text-emerald-400'
-                }`}
-              >
-                {hoveredNode.type}
+        {/* Floating Hover Inspector */}
+        {hoveredInfo && hoveredInfo.type !== 'hub' && (
+          <div className="pointer-events-none absolute top-3 left-3 max-w-xs rounded-xl bg-black/85 backdrop-blur-md border border-white/15 px-3.5 py-2.5 text-xs shadow-2xl space-y-1">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-semibold text-white truncate">
+                {hoveredInfo.fullDomain}
               </span>
-              <span className="text-[10px] text-slate-400 font-mono">
-                Safety: {hoveredNode.score}/100
+              <span className="font-mono font-bold text-slate-200 shrink-0">
+                {hoveredInfo.score}/100
               </span>
             </div>
-            <p className="text-[9px] text-cyan-400/80 mt-1">Click to view full inspection</p>
+            {hoveredInfo.scanData && (
+              <div className="text-[11px] font-mono text-slate-400 space-y-0.5">
+                <div>Verdict: {hoveredInfo.scanData.c2Verdict}</div>
+                {hoveredInfo.scanData.domainInfo?.ipAddress && (
+                  <div>IP: {hoveredInfo.scanData.domainInfo.ipAddress}</div>
+                )}
+                <div className="text-slate-300 pt-0.5">
+                  Click node to inspect full report • Drag to reposition
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* Legend Footer */}
-      <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800/60 mt-1 font-mono">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-white/[0.07] text-[10px] text-slate-400 font-mono">
+        <div className="flex flex-wrap items-center gap-4">
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#00f0ff]" /> Central Neural Engine
+            <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+            RF Core Engine
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" /> Benign
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            Safe (Outer Tier)
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-400" /> Suspicious DGA
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+            Suspicious (Mid Tier)
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" /> Active C2 Beacon
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+            Dangerous / C2 (Inner Alert Tier)
           </span>
         </div>
-        <span className="text-[10px] text-cyan-400/80">Real-time force-directed topology</span>
+        <span className="text-slate-500">
+          Deduplicated by host • Drag nodes or click to inspect
+        </span>
       </div>
     </div>
   );
